@@ -1,0 +1,30 @@
+@import 'tailwindcss';
+
+/* Impor Font Web (Cal Sans & Sans Body) */
+@import url('https://fonts.cdnfonts.com/css/cal-sans');
+@import url('https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700&display=swap');
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    /* Tipografi */
+    --font-heading: 'Cal Sans', ui-sans-serif, sans-serif;
+    --font-sans: 'Albert Sans', 'Plus Jakarta Sans', ui-sans-serif, sans-serif;
+
+    /* Radius Sudut */
+    --radius-brand: 1.25rem;
+    --radius-brand-xl: 2rem;
+
+    /* Palet Warna Resmi KawalBelajar */
+    --color-brand-dark: #1C3138;
+    --color-brand-white: #FFFFFF;
+    --color-brand-yellow: #FDB83D;
+    --color-brand-yellow-hover: #E5A22B;
+    --color-brand-teal: #4593A6;
+    --color-brand-teal-hover: #367B8C;
+    --color-brand-light: #C7EAF3;
+    --color-brand-bg: #EAF6F9;
+}
