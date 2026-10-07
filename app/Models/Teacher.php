@@ -16,12 +16,26 @@ class Teacher extends Model
     protected $primaryKey = 'teacher_id';
     public $incrementing = false;
     protected $keyType = 'string';
-    public $timestamps = false;
+    protected $casts = [
+        'requested_levels' => 'array',
+        'approved_levels' => 'array',
+    ];
 
     protected $fillable = [
         'user_id',
         'cv_url',
+        'university',
+        'study_program',
+        'semester',
+        'focus_subject',
+        'requested_levels',
+        'approved_levels',
+        'identity_document_url',
+        'transcript_url',
+        'certificate_url',
+        'video_link',
         'cv_status',
+        'review_note',
         'teacher_level',
         'default_location',
     ];

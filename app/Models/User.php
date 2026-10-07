@@ -18,6 +18,7 @@ class User extends Authenticatable
     protected $keyType = 'string';
 
     protected $fillable = [
+        'username',
         'email',
         'password_hash',
         'full_name',
@@ -42,6 +43,11 @@ class User extends Authenticatable
     public function getAuthPassword()
     {
         return $this->password_hash;
+    }
+
+    public function getAuthIdentifierName(): string
+    {
+        return 'user_id';
     }
 
     // Relationships
