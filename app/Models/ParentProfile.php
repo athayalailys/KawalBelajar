@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUids;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ParentProfile extends Model
 {
-    use HasFactory, HasUids;
+    use HasFactory, HasUuids;
 
     protected $table = 'parents';
     protected $primaryKey = 'parent_id';
@@ -19,6 +19,7 @@ class ParentProfile extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'parent_id',
         'user_id',
         'pin_hash',
         'phone_number',

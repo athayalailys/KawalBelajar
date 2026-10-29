@@ -1,109 +1,67 @@
-@props([
-    'guru',          // Instance App\Models\Guru (relasi 'user')
-    'paket',         // Instance App\Models\PaketModul
-    'tarif' => null, // Optional: App\Models\TutorPaketTarif
-    'formatKelas' => 'Individu (1-on-1)',
-    'jumlahSesi' => '4 Sesi/Bln (60 Menit/Sesi)',
-    'tipeJadwal' => 'FLEXIBLE'
-])
-
-@php
-    $totalHarga = $tarif?->tarif_kategori ?? $paket->harga_dasar;
-@endphp
-
-<div class="space-y-6">
-    <!-- Tombol Trigger Booking Paket (Sesuai Kiri Atas UI) -->
+<div x-show="currentStep === 5" x-cloak class="space-y-6">
     <div>
-        <button 
-            type="button" 
-            class="bg-brand-white border border-brand-dark/20 font-bold text-xs px-4 py-2 rounded-xl shadow-xs hover:bg-brand-bg transition"
-        >
-            Booking Paket
-        </button>
+        <h2 class="text-xl font-bold text-slate-900">Konfirmasi Pemesanan & Rincian Pembayaran</h2>
+        <p class="text-xs text-slate-500 mt-1">Periksa kembali ringkasan pesanan bimbingan privat Anda sebelum melanjutkan ke pembayaran.</p>
     </div>
 
-    <!-- Container Utama Halaman Pembayaran -->
-    <div class="bg-brand-white rounded-brand-xl p-8 border border-brand-light shadow-sm space-y-6">
-        
-        <!-- Header Section -->
-        <div class="space-y-1">
-            <span class="text-brand-teal font-bold text-sm">Konfirmasi Booking Paket</span>
-            <h2 class="font-heading text-2xl md:text-3xl font-black">Halaman Pembayaran</h2>
-        </div>
-
-        <!-- Warning Callout Box -->
-        <div class="bg-brand-yellow/15 border border-brand-yellow/40 rounded-brand p-4 text-xs font-semibold space-y-2">
-            <div class="flex items-start gap-2">
-                <span class="text-brand-yellow">•</span>
-                <p>Sesi belajar yang sudah dipesan tidak dapat dibatalkan H-1</p>
-            </div>
-            <div class="flex items-start gap-2">
-                <span class="text-brand-yellow">•</span>
-                <p>Bebas Biaya Admin untuk seluruh metode pembayaran Xendit</p>
-            </div>
-        </div>
-
-        <!-- Rincian Order (Strictly Dynamic Database Fields) -->
-        <div class="bg-brand-bg/60 rounded-brand p-6 space-y-3 border border-brand-light/30 text-xs">
-            <div class="flex justify-between items-center">
-                <span class="opacity-70">Tutor & Program:</span>
-                <span class="font-bold">
-                    {{ $guru->user->nama_lengkap ?? 'Alya Rosaan, S.Kom.' }} ({{ $paket->nama_paket }} - {{ $paket->jenjang }})
-                </span>
-            </div>
-            <div class="flex justify-between items-center">
-                <span class="opacity-70">Format Kelas:</span>
-                <span class="font-bold text-brand-teal">{{ $formatKelas }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-                <span class="opacity-70">Jumlah Sesi & Durasi:</span>
-                <span class="font-bold">{{ $jumlahSesi }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-                <span class="opacity-70">Tipe Jadwal:</span>
-                <span class="font-bold tracking-wider">{{ strtoupper($tipeJadwal) }}</span>
-            </div>
-
-            <div class="pt-4 border-t border-brand-dark/10 flex justify-between items-center">
-                <span class="font-bold">Total Pembayaran (Semua Siswa):</span>
-                <span class="font-heading text-xl font-bold text-brand-teal">
-                    Rp{{ number_format($totalHarga, 0, ',', '.') }}
-                </span>
-            </div>
-        </div>
-
-        <!-- Form Submit & Action Footer -->
-        <form action="{{ route('booking.checkout') }}" method="POST" class="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-            @csrf
-            <!-- Hidden Inputs Data ERD -->
-            <input type="hidden" name="guru_id" value="{{ $guru->guru_id }}">
-            <input type="hidden" name="paket_id" value="{{ $paket->paket_id }}">
-            <input type="hidden" name="total_bayar" value="{{ $totalHarga }}">
-
-            <div class="space-y-0.5 text-center sm:text-left">
-                <span class="text-xs opacity-70 font-medium block">Total Biaya/Paket</span>
-                <div class="font-heading text-3xl font-black text-brand-teal">
-                    Rp {{ number_format($totalHarga, 0, ',', '.') }}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- RINGKASAN BIMBINGAN -->
+        <div class="space-y-3">
+            <h3 class="text-xs font-bold text-slate-900 uppercase">📚 RINGKASAN BIMBINGAN BELAJAR</h3>
+            
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <span class="text-[10px] text-slate-400 uppercase">PAKET & LOKASI</span>
+                <div class="flex items-center justify-between mt-0.5">
+                    <h4 class="font-bold text-sm text-slate-900" x-text="form.subject_name + ' • ' + form.education_level"></h4>
+                    <span class="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md">Privat 1-on-1</span>
                 </div>
             </div>
 
-            <div class="flex items-center gap-4 w-full sm:w-auto justify-end">
-                <a 
-                    href="?step=4&guru_id={{ $guru->guru_id }}&paket_id={{ $paket->paket_id }}" 
-                    class="opacity-70 hover:opacity-100 font-bold text-sm px-4 py-2 transition"
-                >
-                    Batal
-                </a>
-                
-                <button 
-                    type="submit" 
-                    class="bg-brand-yellow hover:bg-brand-yellow-hover font-bold text-sm px-8 py-3.5 rounded-full border border-brand-dark shadow-sm transition flex items-center gap-2"
-                >
-                    <span>Lanjut Pembayaran</span>
-                    <span>→</span>
-                </button>
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <span class="text-[10px] text-slate-400 uppercase">TUTOR PENDAMPING</span>
+                <h4 class="font-bold text-sm text-slate-900" x-text="selectedTutor?.full_name || 'Tutor Terpilih'"></h4>
             </div>
-        </form>
 
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <span class="text-[10px] text-slate-400 uppercase">JADWAL RUTIN TERPILIH</span>
+                <h4 class="font-bold text-sm text-slate-900" x-text="selectedSlot ? selectedSlot.day_of_week + ', ' + selectedSlot.start_time + ' WITA' : '-' "></h4>
+            </div>
+        </div>
+
+        <!-- RINCIAN PEMBAYARAN -->
+        <div class="p-6 bg-slate-50 rounded-2xl border border-slate-300 space-y-4">
+            <h3 class="text-xs font-bold text-slate-900 uppercase">🧾 RINCIAN PEMBAYARAN</h3>
+            
+            <div class="space-y-2.5 text-xs">
+                <div class="flex justify-between text-slate-600">
+                    <span>Biaya Bimbingan Privat (4 Sesi)</span>
+                    <span class="font-bold text-slate-900" x-text="'Rp ' + Number(form.base_price || 300000).toLocaleString('id-ID')"></span>
+                </div>
+
+                <div class="flex justify-between text-slate-600">
+                    <span>Biaya Pemeliharaan & Bank Soal</span>
+                    <span class="font-semibold text-slate-900">Rp 5.000</span>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 flex justify-between items-center">
+                <div>
+                    <span class="text-xs font-bold text-slate-900 block">TOTAL TAGIHAN</span>
+                    <span class="text-[10px] text-slate-500">Termasuk pajak & platform fee</span>
+                </div>
+                <span class="text-xl font-extrabold text-emerald-700" x-text="'Rp ' + Number((form.base_price || 300000) + 5000).toLocaleString('id-ID')"></span>
+            </div>
+
+            <button @click="submitCheckout()" :disabled="isSubmitting" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-full text-xs shadow-md transition disabled:opacity-50">
+                <span x-text="isSubmitting ? 'Memproses Transaksi...' : 'Bayar Sekarang via Xendit ➔'"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- BOTTOM ACTION BAR -->
+    <div class="flex items-center justify-between pt-6 border-t border-slate-200">
+        <button @click="goToStep(4)" class="px-6 py-2.5 rounded-full border border-slate-900 font-bold text-xs hover:bg-slate-100 transition">
+            ← Kembali ke Kunci Jadwal
+        </button>
     </div>
 </div>

@@ -30,7 +30,7 @@
 <body class="bg-brand-bg text-brand-dark font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-brand-teal selection:text-white">
     
     <!-- Header Navigation Bar -->
-    <x-navbar />
+    <x-common.navbar />
 
     <!-- Main Content Slot -->
     <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-16 sm:space-y-20">
@@ -38,7 +38,7 @@
     </main>
 
     <!-- Footer Section -->
-    <x-footer />
+    <x-common.footer />
 
     @stack('scripts')
 </body>
