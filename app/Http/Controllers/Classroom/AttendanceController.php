@@ -82,7 +82,9 @@ class AttendanceController extends Controller
         try {
             $updatedSession = $this->attendanceService->clockOut(
                 $session->session_id,
-                $teacherId
+                $teacherId,
+                $request->latitude,
+                $request->longitude,
             );
 
             return response()->json([

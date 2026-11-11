@@ -16,6 +16,8 @@ class ClockInRequest extends FormRequest
     {
         return [
             'session_id' => ['required', 'uuid', Rule::exists('learning_sessions', 'session_id')],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
         ];
     }
 }

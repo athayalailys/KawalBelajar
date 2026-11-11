@@ -33,7 +33,8 @@ class ExamAutoCheckService
 
         $questionQuery = DB::table('question_banks')
             ->where('package_id', $session->order->package_id)
-            ->where('exam_type', $type);
+            ->where('exam_type', $type)
+            ->where('session_number', $session->session_number ?? 1);
         if ($session->schedule?->teacher_id || $session->order->teacher_id) {
             $questionQuery->where('teacher_id', $session->schedule?->teacher_id ?? $session->order->teacher_id);
         }

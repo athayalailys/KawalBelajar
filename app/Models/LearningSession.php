@@ -41,6 +41,10 @@ class LearningSession extends Model
         'address_landmark',
         'teacher_clock_in',
         'teacher_clock_out',
+        'teacher_clock_in_latitude',
+        'teacher_clock_in_longitude',
+        'teacher_clock_out_latitude',
+        'teacher_clock_out_longitude',
         'absensi_masuk_guru',
         'absensi_keluar_guru',
     ];
@@ -56,6 +60,10 @@ class LearningSession extends Model
             'duration_minutes' => 'integer',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'teacher_clock_in_latitude' => 'decimal:7',
+            'teacher_clock_in_longitude' => 'decimal:7',
+            'teacher_clock_out_latitude' => 'decimal:7',
+            'teacher_clock_out_longitude' => 'decimal:7',
         ];
     }
 

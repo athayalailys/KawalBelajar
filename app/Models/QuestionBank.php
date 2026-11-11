@@ -22,6 +22,7 @@ class QuestionBank extends Model
         'question_id',
         'teacher_id',
         'package_id',
+        'session_number',
         'exam_type',
         'category',
         'question_text',

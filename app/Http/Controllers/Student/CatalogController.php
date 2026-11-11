@@ -21,10 +21,14 @@ class CatalogController extends Controller
 
         $packages = ModulePackage::query()
             ->where('is_active', true)
+            ->where('is_published', true)
+            ->where('is_open', true)
             ->where('grade_level', $filters['education_level'])
             ->with('learningMaterials')
             ->orderBy('package_name')
             ->get();
+        $packages = $packages->filter(fn (ModulePackage $package) => $package->isReadyForEnrollment())->values();
+        $packages->load('availabilitySlots');
 
         if ($packages->isEmpty()) {
             return response()->json(['success' => true, 'data' => []]);
@@ -88,6 +92,10 @@ class CatalogController extends Controller
                         'video_duration_minutes' => $material->video_duration_minutes,
                     ]);
 
+                $packageSlots = $package->availabilitySlots->isNotEmpty()
+                    ? $package->availabilitySlots
+                    : $teacher->availabilitySlots;
+
                 return [
                     'package_id' => $package->package_id,
                     'package_name' => $package->package_name,
@@ -95,6 +103,11 @@ class CatalogController extends Controller
                     'description' => $package->description,
                     'base_price' => $package->base_price,
                     'teacher_rate_per_session' => $rate->category_rate,
+                    'availability_slots' => $packageSlots
+                        ->filter(fn ($slot) => $slot->is_active && $slot->is_available
+                            && ($slot->learning_method === null || $slot->learning_method === $method))
+                        ->map(fn ($slot) => ['slot_id' => $slot->slot_id, 'day_of_week' => $slot->day_of_week, 'start_time' => $slot->start_time, 'end_time' => $slot->end_time])
+                        ->values(),
                     'materials' => $materials,
                 ];
             })->filter()->values();

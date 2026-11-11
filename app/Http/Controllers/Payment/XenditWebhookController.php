@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Payment;
 use App\Http\Controllers\Controller;
 use App\Models\LearningSchedule;
 use App\Models\LearningSession;
+use App\Models\LearningMaterial;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\Student\BookingService;
@@ -131,6 +132,7 @@ class XenditWebhookController extends Controller
                 'teacher_id' => $order->teacher_id,
                 'package_id' => $order->package_id,
                 'method' => $order->learning_method,
+                'slot_id' => $slot->slot_id,
                 'location' => $address,
                 'start_time' => $start,
                 'end_time' => $end,
@@ -141,6 +143,12 @@ class XenditWebhookController extends Controller
                 'student_id' => $order->student_id,
                 'teacher_id' => $order->teacher_id,
                 'schedule_id' => $schedule->schedule_id,
+                'session_number' => $sessionIndex + 1,
+                'material_id' => LearningMaterial::query()
+                    ->where('package_id', $order->package_id)
+                    ->where('session_number', $sessionIndex + 1)
+                    ->orderByDesc('created_at')
+                    ->value('material_id'),
                 'scheduled_at' => $start,
                 'duration_minutes' => $start->diffInMinutes($end),
                 'learning_method' => $order->learning_method,
