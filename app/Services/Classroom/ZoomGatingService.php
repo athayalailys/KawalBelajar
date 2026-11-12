@@ -10,12 +10,13 @@ class ZoomGatingService
 {
     public function canAccessMeetingUrl(LearningSession $session, User $user): bool
     {
-        $session->loadMissing('order');
+        $session->loadMissing(['order', 'schedule']);
         $role = strtolower((string) $user->role);
 
         if (in_array($role, ['teacher', 'tutor'], true)) {
-            return $user->teacher?->teacher_id !== null
-                && $user->teacher->teacher_id === $session->teacher_id;
+            $assignedTeacherId = $session->teacher_id ?? $session->schedule?->teacher_id ?? $session->order?->teacher_id;
+
+            return $user->teacher?->teacher_id !== null && $user->teacher->teacher_id === $assignedTeacherId;
         }
 
         if ($role !== 'student') {
@@ -85,13 +86,14 @@ class ZoomGatingService
             ->first(['pretest_score', 'posttest_score']);
         $hasPreTest = $evaluation?->pretest_score !== null;
         $postTestSubmitted = $evaluation?->posttest_score !== null;
+        $sessionCompleted = in_array($session->session_status ?? $session->status, ['completed', 'selesai'], true);
         $isLocked = !$hasStarted || !$hasPreTest;
 
         return [
             'is_locked' => $isLocked,
             'session_status' => $session->session_status ?? $session->status,
             'can_start_exam' => $hasStarted && !$hasPreTest,
-            'can_take_post_test' => $hasStarted && $hasPreTest && !$postTestSubmitted,
+            'can_take_post_test' => $sessionCompleted && $hasPreTest && !$postTestSubmitted,
             'gate_reason' => !$hasStarted ? 'not_started' : (!$hasPreTest ? 'pretest_required' : null),
             'pretest_score' => $evaluation?->pretest_score,
             'posttest_score' => $evaluation?->posttest_score,

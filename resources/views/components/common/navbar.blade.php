@@ -19,13 +19,13 @@
                 @php
                     $authenticatedDashboardRoute = match (auth()->user()->role) {
                         'student' => 'student.dashboard',
-                        'teacher', 'tutor' => 'tutor.landing',
+                        'teacher', 'tutor' => 'tutor.dashboard',
                         'admin' => 'admin.tutors.index',
                         default => 'home',
                     };
                 @endphp
                 <a href="{{ route($authenticatedDashboardRoute) }}" class="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-full transition-all shadow-sm">
-                    Beranda
+                    Dasbor
                 </a>
             @else
                 <!-- Tombol Masuk -> Single Login Page -->

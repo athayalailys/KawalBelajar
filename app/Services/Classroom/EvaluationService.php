@@ -50,7 +50,10 @@ class EvaluationService
                     $evaluation->posttest_score = (int) $data['posttest_score'];
 
                     if ($evaluation->pretest_score !== null) {
-                        $evaluation->progress_percentage = (int) $data['posttest_score'] - (int) $evaluation->pretest_score;
+                        $pretestScore = (int) $evaluation->pretest_score;
+                        $evaluation->progress_percentage = $pretestScore === 0
+                            ? (int) $data['posttest_score']
+                            : round((((int) $data['posttest_score'] - $pretestScore) / $pretestScore) * 100, 2);
                     }
                 }
 

@@ -76,6 +76,29 @@ class TutorAttendanceTest extends TestCase
             ->assertJsonPath('message', 'Tutor sudah melakukan Clock-In pada sesi ini.');
     }
 
+    public function test_clock_out_marks_session_complete(): void
+    {
+        [$tutorUser, $session] = $this->createTutorSession([
+            'scheduled_at' => now()->subMinute(),
+            'status' => 'scheduled',
+            'session_status' => 'scheduled',
+        ]);
+
+        $this->actingAs($tutorUser)
+            ->postJson('/api/classroom/attendance/clock-in', ['session_id' => $session->session_id])
+            ->assertOk();
+
+        $this->postJson('/api/classroom/attendance/clock-out', ['session_id' => $session->session_id])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'completed');
+
+        $this->assertDatabaseHas('learning_sessions', [
+            'session_id' => $session->session_id,
+            'status' => 'completed',
+            'session_status' => 'completed',
+        ]);
+    }
+
     private function createTutorSession(array $sessionAttributes = []): array
     {
         $tutorUser = User::factory()->create();

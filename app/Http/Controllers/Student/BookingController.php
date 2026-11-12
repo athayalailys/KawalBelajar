@@ -33,11 +33,12 @@ class BookingController extends Controller
     {
         $filters = Validator::make($request->query(), [
             'learning_method' => ['required', 'string', 'in:home_visit,online_zoom'],
+            'package_id' => ['nullable', 'uuid', 'exists:module_packages,package_id'],
         ])->validate();
 
         return response()->json([
             'success' => true,
-            'data' => $this->bookingService->getTeacherSlotsWithClashDetection($teacherId, $filters['learning_method']),
+            'data' => $this->bookingService->getTeacherSlotsWithClashDetection($teacherId, $filters['learning_method'], $filters['package_id'] ?? null),
         ]);
     }
 
@@ -100,6 +101,11 @@ class BookingController extends Controller
 
             if (!$slot || ($slot->learning_method && $slot->learning_method !== $validated['learning_method'])) {
                 throw ValidationException::withMessages(['selected_slot_id' => 'Jadwal tidak tersedia untuk tutor atau metode belajar ini.']);
+            }
+
+            $package = \App\Models\ModulePackage::query()->whereKey($validated['package_id'])->firstOrFail();
+            if ($package->availabilitySlots()->exists() && ! $package->availabilitySlots()->whereKey($slot->slot_id)->exists()) {
+                throw ValidationException::withMessages(['selected_slot_id' => 'Slot ini tidak termasuk jadwal yang dipilih untuk kelas.']);
             }
 
             $pricing = $this->bookingService->calculatePricing(

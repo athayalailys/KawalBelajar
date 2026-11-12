@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Classroom\ExamAutoCheckService;
 use App\Services\Classroom\ZoomGatingService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class SessionRoomController extends Controller
 {
@@ -37,12 +38,15 @@ class SessionRoomController extends Controller
             ->where('student_id', $student->student_id)
             ->first();
         if ($examType === 'post_test') {
+            abort_unless(in_array($session->session_status ?? $session->status, ['completed', 'selesai'], true), 403, 'Tes akhir tersedia setelah tutor menyelesaikan sesi.');
             abort_unless($evaluationScore?->pretest_score !== null, 403, 'Selesaikan Pre-Test sebelum mengerjakan Post-Test.');
         }
 
-        $teacherId = $session->schedule?->teacher_id ?? $session->teacher_id ?? $session->order->teacher_id;
+        $teacherId = $session->schedule?->teacher_id ?? $session->teacher_id ?? $session->order?->teacher_id;
+        abort_unless($session->order?->package_id, 403, 'Paket sesi tidak ditemukan.');
         $questionsQuery = QuestionBank::query()
             ->where('package_id', $session->order->package_id)
+            ->where('session_number', $session->session_number ?? 1)
             ->where('exam_type', $examType);
 
         if ($teacherId) {
@@ -78,9 +82,16 @@ class SessionRoomController extends Controller
         ]);
     }
 
+    /** Compatibility route used by the tutor branch. */
+    public function examQuestions(Request $request, string $sessionId): JsonResponse
+    {
+        $validated = $request->validate(['exam_type' => ['required', 'string', 'in:pre_test,post_test']]);
+        return $this->getExam($sessionId, $validated['exam_type']);
+    }
+
     public function getRoomDetails(string $sessionId, ZoomGatingService $gatingService): JsonResponse
     {
-        $session = LearningSession::query()->with('order')->where('session_id', $sessionId)->firstOrFail();
+        $session = LearningSession::query()->with(['order', 'schedule'])->where('session_id', $sessionId)->firstOrFail();
         $user = request()->user();
         abort_unless($user instanceof User, 403);
 
@@ -88,7 +99,8 @@ class SessionRoomController extends Controller
         $teacherId = $user->teacher?->teacher_id;
         $isStudentOwner = $studentId !== null
             && ($session->student_id === $studentId || $session->order?->student_id === $studentId);
-        $isAssignedTeacher = $teacherId !== null && $session->teacher_id === $teacherId;
+        $assignedTeacherId = $session->teacher_id ?? $session->schedule?->teacher_id ?? $session->order?->teacher_id;
+        $isAssignedTeacher = $teacherId !== null && $assignedTeacherId === $teacherId;
         abort_unless($isStudentOwner || $isAssignedTeacher, 403);
 
         if (!$gatingService->canAccessMeetingUrl($session, $user)) {
@@ -148,7 +160,7 @@ class SessionRoomController extends Controller
             'score' => (int) ($examType === 'pre_test' ? $score->pretest_score : $score->posttest_score),
             'pretest_score' => $score->pretest_score,
             'posttest_score' => $score->posttest_score,
-            'progress_percentage' => $score->progress_percentage,
+            'progress_percentage' => $score->progress_percentage === null ? null : (float) $score->progress_percentage,
             'submitted_at' => $score->created_at?->toISOString(),
         ]]);
     }

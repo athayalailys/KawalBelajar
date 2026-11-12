@@ -40,6 +40,7 @@ Route::get('/login', function () {
 
 Route::middleware(['web', 'auth:web', 'active-account'])->prefix('classroom')->name('api.classroom.')->group(function () {
     Route::get('/session/{sessionId}/exam/{examType}', [SessionRoomController::class, 'getExam'])->name('session.exam');
+    Route::get('/session/{sessionId}/exam', [SessionRoomController::class, 'examQuestions'])->name('session.exam.compat');
     Route::get('/session/{sessionId}/room-access', [SessionRoomController::class, 'roomAccess'])->name('session.room-access');
     Route::get('/session/{sessionId}/room', [SessionRoomController::class, 'getRoomDetails'])->name('session.room');
     Route::post('/session/{sessionId}/submit-exam', [SessionRoomController::class, 'submitExam'])->name('session.submit-exam');

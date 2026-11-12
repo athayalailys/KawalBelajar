@@ -98,6 +98,38 @@ class ExamGatingTest extends TestCase
             'student_id' => $studentId,
             'pretest_score' => 100,
         ]);
+        $this->assertDatabaseHas('student_answers', [
+            'session_id' => $sessionId,
+            'student_id' => $studentId,
+            'question_id' => $question->question_id,
+            'is_correct' => true,
+        ]);
+
+        $postTestQuestion = QuestionBank::create([
+            'teacher_id' => $teacher->teacher_id,
+            'package_id' => $package->package_id,
+            'exam_type' => 'post_test',
+            'category' => 'umum',
+            'question_text' => 'Soal tes akhir',
+            'answer_key' => 'A',
+        ]);
+
+        $this->actingAs($user)
+            ->getJson("/api/classroom/session/{$sessionId}/exam/post_test")
+            ->assertForbidden();
+
+        $session->update(['status' => 'completed', 'session_status' => 'completed']);
+        $this->actingAs($user)
+            ->getJson("/api/classroom/session/{$sessionId}/exam/post_test")
+            ->assertOk()
+            ->assertJsonPath('data.questions.0.question_id', $postTestQuestion->question_id);
+
+        $this->postJson("/api/classroom/session/{$sessionId}/submit-exam", [
+            'exam_type' => 'post_test',
+            'answers' => [['question_id' => $postTestQuestion->question_id, 'answer' => 'A']],
+        ])->assertOk()
+            ->assertJsonPath('data.posttest_score', 100)
+            ->assertJsonPath('data.progress_percentage', 0);
     }
 
     public function test_student_can_load_only_their_exam_questions_without_answer_keys(): void

@@ -12,6 +12,7 @@ use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\TeacherAvailabilitySlot;
 use App\Models\TutorPackageRate;
+use App\Models\TutorClassSessionContent;
 use App\Models\User;
 use Database\Seeders\DashboardE2ESeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -149,14 +150,25 @@ class StudentDashboardE2ETest extends TestCase
             'approved_levels' => ['SMP'],
         ]);
         $package = ModulePackage::create([
+            'teacher_id' => $teacher->teacher_id,
             'package_name' => 'Paket Lifecycle',
             'grade_level' => 'SMP',
             'base_price' => 50000,
+            'supported_session_packages' => '1',
+            'is_published' => true,
+            'is_open' => true,
             'is_active' => true,
+        ]);
+        TutorClassSessionContent::create([
+            'package_id' => $package->package_id,
+            'session_number' => 1,
+            'topic' => 'Materi Siklus',
+            'learning_target' => 'Memahami konsep dasar.',
         ]);
         LearningMaterial::create([
             'teacher_id' => $teacher->teacher_id,
             'package_id' => $package->package_id,
+            'session_number' => 1,
             'title' => 'Materi Siklus',
             'material_type' => 'pdf',
             'file_or_url' => 'materials/lifecycle.pdf',
@@ -175,6 +187,18 @@ class StudentDashboardE2ETest extends TestCase
             'learning_method' => 'online_zoom',
             'is_active' => true,
         ]);
+        $pretestQuestions = collect();
+        foreach (range(1, 3) as $number) {
+            $pretestQuestions->push(QuestionBank::create([
+                'teacher_id' => $teacher->teacher_id,
+                'package_id' => $package->package_id,
+                'session_number' => 1,
+                'exam_type' => 'pre_test',
+                'category' => 'E2E',
+                'question_text' => "Pertanyaan awal {$number}",
+                'answer_key' => '4',
+            ]));
+        }
 
         $checkout = $this->actingAs($studentUser)->postJson('/api/student/booking/checkout', [
             'teacher_id' => $teacher->teacher_id,
@@ -199,17 +223,11 @@ class StudentDashboardE2ETest extends TestCase
             ->assertForbidden()
             ->assertJsonPath('data.is_gated', true);
 
-        $pretest = QuestionBank::create([
-            'teacher_id' => $teacher->teacher_id,
-            'package_id' => $package->package_id,
-            'exam_type' => 'pre_test',
-            'category' => 'E2E',
-            'question_text' => 'Hasil 2 + 2?',
-            'answer_key' => '4',
-        ]);
+        $pretest = $pretestQuestions->first();
         $posttest = QuestionBank::create([
             'teacher_id' => $teacher->teacher_id,
             'package_id' => $package->package_id,
+            'session_number' => 1,
             'exam_type' => 'post_test',
             'category' => 'E2E',
             'question_text' => 'Hasil 3 + 1?',
@@ -219,9 +237,14 @@ class StudentDashboardE2ETest extends TestCase
         // Simulasikan waktu sesi yang sudah tiba sebelum Pre-Test dimulai.
         $session->update(['scheduled_at' => now()->subMinute()]);
 
-        $this->postJson("/api/classroom/session/{$session->session_id}/submit-exam", [
+        $this->actingAs($teacherUser)->postJson('/api/classroom/attendance/clock-in', ['session_id' => $session->session_id])->assertOk();
+
+        $this->actingAs($studentUser)->postJson("/api/classroom/session/{$session->session_id}/submit-exam", [
             'exam_type' => 'pre_test',
-            'answers' => [['question_id' => $pretest->question_id, 'answer' => '0']],
+            'answers' => $pretestQuestions->map(fn (QuestionBank $question) => [
+                'question_id' => $question->question_id,
+                'answer' => '0',
+            ])->all(),
         ])->assertOk()->assertJsonPath('data.score', 0);
         $this->assertDatabaseHas('evaluation_scores', [
             'session_id' => $session->session_id,
@@ -231,14 +254,15 @@ class StudentDashboardE2ETest extends TestCase
         $this->getJson("/api/classroom/session/{$session->session_id}/room")
             ->assertOk()->assertJsonPath('data.zoom_meeting_url', 'https://zoom.us/j/lifecycle');
 
+        $this->actingAs($teacherUser)->postJson('/api/classroom/attendance/clock-out', ['session_id' => $session->session_id])->assertOk();
+
+        $this->actingAs($studentUser);
         $this->postJson("/api/classroom/session/{$session->session_id}/submit-exam", [
             'exam_type' => 'post_test',
             'answers' => [['question_id' => $posttest->question_id, 'answer' => '4']],
         ])->assertOk()->assertJsonPath('data.score', 100);
 
-        $this->actingAs($teacherUser)->postJson('/api/classroom/attendance/clock-in', ['session_id' => $session->session_id])->assertOk();
-        $this->postJson('/api/classroom/attendance/clock-out', ['session_id' => $session->session_id])->assertOk();
-        $this->postJson("/api/classroom/session/{$session->session_id}/evaluation", [
+        $this->actingAs($teacherUser)->postJson("/api/classroom/session/{$session->session_id}/evaluation", [
             'attendances' => [['student_id' => $student->student_id, 'status' => 'present']],
             'posttest_score' => 100,
             'teacher_notes' => 'Kemajuan baik.',

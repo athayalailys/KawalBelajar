@@ -8,6 +8,8 @@ use App\Models\Order;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\TeacherAvailabilitySlot;
+use App\Models\QuestionBank;
+use App\Models\TutorClassSessionContent;
 use App\Models\TutorPackageRate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -143,18 +145,43 @@ class StudentBookingTest extends TestCase
             'is_active' => true,
         ]);
         $package = ModulePackage::create([
+            'teacher_id' => null,
             'package_name' => 'Matematika SMP',
             'grade_level' => 'SMP',
             'base_price' => 50000,
+            'supported_session_packages' => '1,4',
+            'is_published' => true,
+            'is_open' => true,
             'is_active' => true,
         ]);
-        LearningMaterial::create([
-            'teacher_id' => $teacher->teacher_id,
-            'package_id' => $package->package_id,
-            'title' => 'Aljabar',
-            'material_type' => 'pdf',
-            'file_or_url' => 'materials/aljabar.pdf',
-        ]);
+        $package->update(['teacher_id' => $teacher->teacher_id]);
+        foreach (range(1, 4) as $sessionNumber) {
+            TutorClassSessionContent::create([
+                'package_id' => $package->package_id,
+                'session_number' => $sessionNumber,
+                'topic' => "Topik {$sessionNumber}",
+                'learning_target' => "Target {$sessionNumber}",
+            ]);
+            LearningMaterial::create([
+                'teacher_id' => $teacher->teacher_id,
+                'package_id' => $package->package_id,
+                'session_number' => $sessionNumber,
+                'title' => "Aljabar {$sessionNumber}",
+                'material_type' => 'pdf',
+                'file_or_url' => "materials/aljabar-{$sessionNumber}.pdf",
+            ]);
+            foreach (range(1, 3) as $questionNumber) {
+                QuestionBank::create([
+                    'teacher_id' => $teacher->teacher_id,
+                    'package_id' => $package->package_id,
+                    'session_number' => $sessionNumber,
+                    'exam_type' => 'pre_test',
+                    'category' => 'Matematika',
+                    'question_text' => "Pertanyaan {$sessionNumber}-{$questionNumber}",
+                    'answer_key' => 'A',
+                ]);
+            }
+        }
         TutorPackageRate::create([
             'package_id' => $package->package_id,
             'teacher_level' => 'junior',

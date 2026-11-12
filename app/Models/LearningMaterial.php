@@ -22,10 +22,12 @@ class LearningMaterial extends Model
         'material_id',
         'teacher_id',
         'package_id',
+        'session_number',
         'title',
         'material_type',
         'file_or_url',
         'video_duration_minutes',
+        'created_at',
     ];
 
     protected function casts(): array

@@ -34,6 +34,10 @@ class ExamAutoCheckService
             abort(403, 'Selesaikan Pre-Test sebelum mengerjakan Post-Test.');
         }
 
+        if ($type === 'post_test' && !in_array($session->session_status ?? $session->status, ['completed', 'selesai'], true)) {
+            abort(403, 'Tes akhir tersedia setelah tutor menyelesaikan sesi.');
+        }
+
         $scoreColumn = $type === 'pre_test' ? 'pretest_score' : 'posttest_score';
         $existing = EvaluationScore::query()
             ->where('session_id', $session->session_id)
@@ -46,7 +50,8 @@ class ExamAutoCheckService
 
         $questionQuery = DB::table('question_banks')
             ->where('package_id', $session->order->package_id)
-            ->where('exam_type', $type);
+            ->where('exam_type', $type)
+            ->where('session_number', $session->session_number ?? 1);
         if ($session->schedule?->teacher_id || $session->order->teacher_id) {
             $questionQuery->where('teacher_id', $session->schedule?->teacher_id ?? $session->order->teacher_id);
         }
@@ -77,7 +82,10 @@ class ExamAutoCheckService
             $evaluationScore->created_at ??= Carbon::now();
 
             if ($scoreColumn === 'posttest_score' && $evaluationScore->pretest_score !== null) {
-                $evaluationScore->progress_percentage = $score - (int) $evaluationScore->pretest_score;
+                $pretestScore = (int) $evaluationScore->pretest_score;
+                $evaluationScore->progress_percentage = $pretestScore === 0
+                    ? $score
+                    : round((($score - $pretestScore) / $pretestScore) * 100, 2);
             }
             $evaluationScore->save();
 

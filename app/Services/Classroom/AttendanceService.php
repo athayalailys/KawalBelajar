@@ -9,7 +9,7 @@ class AttendanceService
 {
     public function clockIn(string $sessionId, string $teacherId, ?float $latitude = null, ?float $longitude = null): LearningSession
     {
-        return DB::transaction(function () use ($sessionId, $teacherId) {
+        return DB::transaction(function () use ($sessionId, $teacherId, $latitude, $longitude) {
             $session = LearningSession::where('session_id', $sessionId)
                 ->where('teacher_id', $teacherId)
                 ->lockForUpdate()
@@ -25,15 +25,17 @@ class AttendanceService
                 'teacher_clock_in' => $now,
                 'status' => 'in_progress',
                 'session_status' => 'in_progress',
+                'teacher_clock_in_latitude' => $latitude,
+                'teacher_clock_in_longitude' => $longitude,
             ]);
 
             return $session;
         });
     }
 
-    public function clockOut(string $sessionId, string $teacherId): LearningSession
+    public function clockOut(string $sessionId, string $teacherId, ?float $latitude = null, ?float $longitude = null): LearningSession
     {
-        return DB::transaction(function () use ($sessionId, $teacherId) {
+        return DB::transaction(function () use ($sessionId, $teacherId, $latitude, $longitude) {
             $session = LearningSession::where('session_id', $sessionId)
                 ->where('teacher_id', $teacherId)
                 ->lockForUpdate()
@@ -53,6 +55,8 @@ class AttendanceService
                 'teacher_clock_out' => $now,
                 'status' => 'completed',
                 'session_status' => 'completed',
+                'teacher_clock_out_latitude' => $latitude,
+                'teacher_clock_out_longitude' => $longitude,
             ]);
 
             return $session;

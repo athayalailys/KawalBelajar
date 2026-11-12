@@ -140,7 +140,7 @@
                 <div x-show="result" x-cloak class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
                     Jawaban tersimpan. Nilai: <strong x-text="result?.score"></strong>/100.
                     <span x-show="result?.exam_type === 'post_test' && result?.progress_percentage !== null">
-                        Perubahan nilai dari tes awal: <strong x-text="`${Number(result?.progress_percentage) > 0 ? '+' : ''}${result?.progress_percentage}`"></strong> poin.
+                        Perubahan nilai dari tes awal: <strong x-text="`${Number(result?.progress_percentage) > 0 ? '+' : ''}${result?.progress_percentage}`"></strong>%.
                     </span>
                 </div>
             </section>

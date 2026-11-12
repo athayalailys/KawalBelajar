@@ -9,9 +9,15 @@ use App\Http\Controllers\Tutor\TutorLandingController;
 use App\Http\Controllers\Student\StudentDashboardController; // Controller untuk dashboard siswa
 use App\Http\Controllers\Student\BookingController;
 use App\Http\Controllers\Student\ClassroomPageController;
+use App\Http\Controllers\Tutor\TutorDashboardController;
+use App\Http\Controllers\Tutor\TutorClassDetailsController;
+use App\Http\Controllers\Tutor\TutorClassesController;
+use App\Http\Controllers\Tutor\TutorTeachingRoomController;
+use App\Http\Controllers\Tutor\TutorAvailabilityController;
+use App\Http\Controllers\Tutor\TutorClassRosterController;
+use App\Http\Controllers\Tutor\TutorClassMaterialsController;
 use Illuminate\Http\Request; // Class Request untuk membaca informasi permintaan pengguna   
 use Illuminate\Support\Facades\Route; // Facade Route untuk mendefinisikan URL aplikasi
-use App\Http\Controllers\Classroom\ExamController;
 
 // 2. HALAMAN UTAMA (PUBLIC)
 // GET /Menampilkan landing page. Nama rute: home
@@ -109,10 +115,57 @@ Route::get('/student/classroom', function (Request $request) {
 Route::get('/student/report', fn () => redirect()->route('student.report', [], 301))->name('student.report.legacy');
 Route::get('/student/parent', fn () => redirect()->route('student.parent', [], 301))->name('student.parent.legacy');
 
-Route::middleware('auth:sanctum')->prefix('classroom')->group(function () {
-    // US 3.2 Endpoint
-    Route::post('/session/{sessionId}/submit-exam', [ExamController::class, 'submitExam']);
-});
+// 8. DASHBOARD TUTOR
+Route::middleware(['auth', 'active-account'])
+    ->prefix('tutor')
+    ->name('tutor.')
+    ->group(function () {
+        Route::get('/dashboard', [TutorDashboardController::class, 'show'])
+            ->name('dashboard');
+        Route::get('/classes', [TutorClassesController::class, 'index'])
+            ->name('classes');
+        Route::get('/classes/create', [TutorClassesController::class, 'create'])
+            ->name('classes.create');
+        Route::post('/classes', [TutorClassesController::class, 'store'])
+            ->name('classes.store');
+        Route::get('/classes/{packageId}/materials', [TutorClassMaterialsController::class, 'index'])
+            ->name('classes.materials');
+        Route::post('/classes/{packageId}/materials/sessions/{sessionNumber}', [TutorClassMaterialsController::class, 'saveSession'])
+            ->whereNumber('sessionNumber')
+            ->name('classes.materials.session.save');
+        Route::post('/classes/{packageId}/materials/publish', [TutorClassMaterialsController::class, 'publish'])
+            ->name('classes.materials.publish');
+        Route::get('/classes/{packageId}/roster', [TutorClassRosterController::class, 'index'])
+            ->name('classes.roster');
+        Route::patch('/classes/{packageId}/listing', [TutorClassRosterController::class, 'updateListing'])
+            ->name('classes.listing');
+        Route::get('/classes/{packageId}/roster/export', [TutorClassRosterController::class, 'exportCsv'])
+            ->name('classes.roster.export');
+        Route::get('/availability', [TutorAvailabilityController::class, 'index'])
+            ->name('availability');
+        Route::post('/availability', [TutorAvailabilityController::class, 'store'])
+            ->name('availability.store');
+        Route::patch('/availability/{slotId}', [TutorAvailabilityController::class, 'toggle'])
+            ->name('availability.toggle');
+        Route::delete('/availability/{slotId}', [TutorAvailabilityController::class, 'destroy'])
+            ->name('availability.destroy');
+        Route::get('/teaching-room', [TutorTeachingRoomController::class, 'index'])
+            ->name('classroom');
+        Route::get('/teaching-room/classes/{packageId}', [TutorTeachingRoomController::class, 'show'])
+            ->name('classroom.show');
+        Route::get('/teaching-room/classes/{packageId}/students/{studentId}', [TutorTeachingRoomController::class, 'show'])
+            ->name('classroom.student');
+        Route::post('/teaching-room/classes/{packageId}/students/{studentId}/attendance', [TutorTeachingRoomController::class, 'updateAttendance'])
+            ->name('classroom.attendance');
+        Route::post('/teaching-room/classes/{packageId}/students/{studentId}/evaluation', [TutorTeachingRoomController::class, 'saveEvaluation'])
+            ->name('classroom.evaluation');
+        Route::get('/classes/details', [TutorClassDetailsController::class, 'index'])
+            ->name('class-details');
+        Route::post('/sessions/{sessionId}/complete', [TutorClassDetailsController::class, 'complete'])
+            ->name('sessions.complete');
+        Route::post('/sessions/{sessionId}/evaluation', [TutorClassDetailsController::class, 'saveEvaluation'])
+            ->name('sessions.evaluation.save');
+    });
 
 // 9. ADMIN: PENGELOLAAN DAN PENINJAUAN TUTOR
 // Prefix URL: /admin/api/tutors

@@ -41,11 +41,24 @@ class BookingService
         $package = ModulePackage::query()
             ->whereKey($packageId)
             ->where('is_active', true)
+            ->where('is_published', true)
+            ->where('is_open', true)
             ->where('grade_level', $student->education_level)
             ->first();
 
         if (!$package) {
             throw ValidationException::withMessages(['package_id' => 'Paket tidak tersedia untuk jenjang pembelajar ini.']);
+        }
+
+        if (!$package->isReadyForEnrollment()) {
+            throw ValidationException::withMessages(['package_id' => 'Kelas belum siap dipesan. Tutor perlu melengkapi materi dan minimal 3 soal pada setiap pertemuan.']);
+        }
+
+        $supportedPackages = filled($package->supported_session_packages)
+            ? array_map('intval', explode(',', $package->supported_session_packages))
+            : [1, 4];
+        if (!in_array($sessionCount, $supportedPackages, true)) {
+            throw ValidationException::withMessages(['session_package' => 'Paket kelas tidak menyediakan jumlah pertemuan yang dipilih.']);
         }
 
         $hasMethodAvailability = TeacherAvailabilitySlot::query()
@@ -146,7 +159,7 @@ class BookingService
         ];
     }
 
-    public function getTeacherSlotsWithClashDetection(string $teacherId, string $method): array
+    public function getTeacherSlotsWithClashDetection(string $teacherId, string $method, ?string $packageId = null): array
     {
         $teacherIsBookable = Teacher::query()
             ->whereKey($teacherId)
@@ -168,6 +181,14 @@ class BookingService
             ->orderBy('day_of_week')
             ->orderBy('start_time')
             ->get();
+
+        if ($packageId) {
+            $package = ModulePackage::query()->whereKey($packageId)->where('teacher_id', $teacherId)->firstOrFail();
+            $packageSlotIds = $package->availabilitySlots()->pluck('teacher_availability_slots.slot_id');
+            if ($packageSlotIds->isNotEmpty()) {
+                $slots = $slots->whereIn('slot_id', $packageSlotIds);
+            }
+        }
 
         return $slots->map(function (TeacherAvailabilitySlot $slot) {
             $activeOrders = Order::query()

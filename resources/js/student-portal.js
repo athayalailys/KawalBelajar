@@ -613,6 +613,7 @@ const studentClassroom = () => ({
     submitting: false,
     error: '',
     notice: '',
+    roomRefreshId: null,
 
     async init() {
         const query = new URLSearchParams(window.location.search);
@@ -638,6 +639,12 @@ const studentClassroom = () => ({
         } finally {
             this.loading = false;
         }
+        this.roomRefreshId = window.setInterval(() => this.refreshRoomStatus(), 10000);
+    },
+
+    destroy() {
+        this.stopTimer();
+        if (this.roomRefreshId !== null) window.clearInterval(this.roomRefreshId);
     },
 
     sessionUrl(sessionId, options = {}) {
@@ -676,6 +683,20 @@ const studentClassroom = () => ({
             this.error = readableError(error);
         } finally {
             this.loading = false;
+        }
+    },
+
+    async refreshRoomStatus() {
+        if (!this.selectedSession) return;
+        const url = this.$el.dataset.roomAccessUrl.replace('__SESSION_ID__', encodeURIComponent(this.selectedSession.session_id));
+        try {
+            const result = await jsonRequest(url);
+            this.room = result.data;
+            this.preTestScore = result.data?.pretest_score === null || result.data?.pretest_score === undefined
+                ? null
+                : Number(result.data.pretest_score);
+        } catch (error) {
+            // Keep the last known room state if a brief network error occurs.
         }
     },
 

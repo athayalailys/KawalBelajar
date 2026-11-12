@@ -49,7 +49,7 @@ class StudentEvaluationTest extends TestCase
             'student_id' => $student->student_id,
             'posttest_score' => 85,
             'teacher_notes' => 'Pemahaman siswa meningkat.',
-            'progress_percentage' => 15,
+            'progress_percentage' => 21.43,
         ]);
     }
 
