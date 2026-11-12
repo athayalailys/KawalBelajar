@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 
 class LearningSession extends Model
 {
@@ -119,5 +120,19 @@ class LearningSession extends Model
     public function teacherWorkLog(): HasOne
     {
         return $this->hasOne(TeacherWorkLog::class, 'session_id', 'session_id');
+    }
+
+    public function scheduledStartAt(): ?Carbon
+    {
+        $value = $this->scheduled_at ?? $this->schedule?->start_time;
+
+        return $value ? Carbon::parse($value) : null;
+    }
+
+    public function hasStarted(): bool
+    {
+        $scheduledStart = $this->scheduledStartAt();
+
+        return $scheduledStart !== null && $scheduledStart->lessThanOrEqualTo(now());
     }
 }

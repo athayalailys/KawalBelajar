@@ -1,214 +1,196 @@
 <x-common.app-layout>
     <x-slot:title>Bergabung Menjadi Mitra Pengajar - KawalBelajar</x-slot:title>
 
-    <div class="max-w-5xl mx-auto py-8 px-4" x-data="tutorWizard">
-        
-        <!-- Header Banner -->
-        <div class="bg-[#FFF5D6] border border-[#E2D2A4] rounded-2xl p-6 mb-8 shadow-sm">
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-[#1E293B] mb-2 font-heading">
-                Bergabung Menjadi Mitra Pengajar
-            </h1>
-            <p class="text-sm text-[#475569]">
-                Isi data diri, tentukan jenjang spesialisasi mengajar mu, dan unggah dokumen pendukung untuk diverifikasi langsung oleh admin
-            </p>
-        </div>
+    <main class="mx-auto max-w-5xl px-4 py-8" x-data="tutorWizard"
+        x-init="selectedLevels = @js(old('selected_levels', ['SMP'])); step = @js($errors->hasAny(['cv_file', 'ktp_ktm_file', 'transcript_file', 'certificate_file', 'video_link']) ? 2 : max(1, min(2, (int) ($step ?? 1))))">
 
-        <!-- Wizard Stepper Tab -->
-        <div class="relative flex items-center justify-between mb-8 overflow-hidden rounded-xl bg-gray-200">
-            <div 
-                class="w-1/2 py-3 px-6 text-center font-bold text-sm transition-all duration-300 relative flex items-center justify-center cursor-pointer"
-                :class="step === 1 ? 'bg-[#2BB0C1] text-white' : 'bg-gray-200 text-gray-500'"
-                @click="step = 1"
-            >
-                <span>Biodata Akademik & Peminatan Jenjang</span>
-                <div class="absolute right-[-15px] top-0 bottom-0 w-0 h-0 border-t-[24px] border-t-transparent border-b-[24px] border-b-transparent border-l-[15px] z-10"
-                     :class="step === 1 ? 'border-l-[#2BB0C1]' : 'border-l-gray-200'"></div>
+        <section class="mb-8 rounded-2xl border border-amber-200/80 bg-amber-50/60 p-6">
+            <h1 class="mb-1 text-2xl font-bold text-slate-900">Bergabung Menjadi Mitra Pengajar KawalBelajar</h1>
+            <p class="mb-6 text-sm text-slate-600">Lengkapi data diri, pilih jenjang pengajaran, dan unggah dokumen untuk diverifikasi admin.</p>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <article class="flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-4">
+                    <span class="rounded-lg bg-amber-100 p-2" aria-hidden="true">&#127891;</span>
+                    <div><h2 class="text-xs font-bold text-slate-900">Profil Terverifikasi</h2><p class="text-xs text-slate-500">Dokumen ditinjau sebelum akun pengajar aktif.</p></div>
+                </article>
+                <article class="flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-4">
+                    <span class="rounded-lg bg-amber-100 p-2" aria-hidden="true">&#128218;</span>
+                    <div><h2 class="text-xs font-bold text-slate-900">Pilih Jenjang Mengajar</h2><p class="text-xs text-slate-500">Ajukan satu atau beberapa jenjang sesuai kualifikasi.</p></div>
+                </article>
+                <article class="flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-4">
+                    <span class="rounded-lg bg-amber-100 p-2" aria-hidden="true">&#128221;</span>
+                    <div><h2 class="text-xs font-bold text-slate-900">Unggah Dokumen</h2><p class="text-xs text-slate-500">CV, identitas, dan transkrip mendukung proses verifikasi.</p></div>
+                </article>
             </div>
+        </section>
 
-            <div 
-                class="w-1/2 py-3 px-6 text-center font-bold text-sm transition-all duration-300 relative flex items-center justify-center cursor-pointer"
-                :class="step === 2 ? 'bg-[#2BB0C1] text-white' : 'bg-gray-200 text-gray-500'"
-                @click="step = 2"
-            >
-                <span>Unggah Berkas</span>
+        @if (session('success'))
+            <div role="status" class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('success') }}</div>
+        @endif
+        @if (session('error'))
+            <div role="alert" class="mb-5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{{ session('error') }}</div>
+        @endif
+        @if ($errors->any())
+            <div role="alert" class="mb-5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-800">
+                <h2 class="text-sm font-bold">Periksa kembali data pendaftaran</h2>
+                <ul class="mt-1 list-inside list-disc text-xs">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
-        </div>
+        @endif
 
-        <!-- Form Utama -->
-        <form action="{{ route('register.tutor.store') }}" method="POST" enctype="multipart/form-data">
+        <nav aria-label="Tahapan pendaftaran" class="mb-8 grid grid-cols-2 overflow-hidden rounded-xl bg-slate-200">
+            <button type="button" @click="step = 1" :aria-current="step === 1 ? 'step' : null"
+                :class="step === 1 ? 'bg-amber-400 text-slate-900' : 'bg-slate-200 text-slate-500'"
+                class="px-4 py-3 text-center text-sm font-bold transition sm:px-6">
+                1. Biodata & Akademik
+            </button>
+            <button type="button" @click="step = 2" :aria-current="step === 2 ? 'step' : null"
+                :class="step === 2 ? 'bg-amber-400 text-slate-900' : 'bg-slate-200 text-slate-500'"
+                class="px-4 py-3 text-center text-sm font-bold transition sm:px-6">
+                2. Unggah Berkas
+            </button>
+        </nav>
+
+        <form action="{{ route('register.tutor.store') }}" method="POST" enctype="multipart/form-data" novalidate class="space-y-8">
             @csrf
 
-            <!-- ================= STEP 1: BIODATA & AKADEMIK ================= -->
-            <div x-show="step === 1" x-cloak class="space-y-6">
+            <section x-show="step === 1" x-cloak class="space-y-6">
                 <div>
-                    <h2 class="text-xl font-extrabold text-[#1E293B]">Isi Identitas Diri & Riwayat Akademik</h2>
-                    <p class="text-xs text-[#64748B]">Pastikan nomor whatsapp dan email aktif untuk penerbitan kredensial akun</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-[#1E293B] mb-1">Nama Lengkap beseta Gelar jika ada</label>
-                        <input type="text" name="full_name" value="{{ old('full_name') }}" placeholder="Contoh: Athaya Laily Syafitri, S.Pd" class="w-full px-4 py-2.5 rounded-full border border-gray-300 text-sm focus:ring-2 focus:ring-[#2BB0C1] focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-[#1E293B] mb-1">Alamat Email Aktif</label>
-                        <input type="email" name="email" value="{{ old('email') }}" placeholder="athay.lailyz@gmail.com" class="w-full px-4 py-2.5 rounded-full border border-gray-300 text-sm focus:ring-2 focus:ring-[#2BB0C1] focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-[#1E293B] mb-1">Nomor WhatsApp Aktif</label>
-                        <input type="text" name="phone_number" value="{{ old('phone_number') }}" placeholder="08XX-XXXX-XXXX" class="w-full px-4 py-2.5 rounded-full border border-gray-300 text-sm focus:ring-2 focus:ring-[#2BB0C1] focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-[#1E293B] mb-1">Alamat Domisili Asal</label>
-                        <input type="text" name="domicile_address" value="{{ old('domicile_address') }}" placeholder="Contoh: jl. Hasan basri, Kayu tangi, banjarmasin" class="w-full px-4 py-2.5 rounded-full border border-gray-300 text-sm focus:ring-2 focus:ring-[#2BB0C1] focus:outline-none">
-                    </div>
-                </div>
-
-                <!-- Section Informasi Akademik -->
-                <div class="bg-[#EBF2F7] rounded-2xl p-5 border border-gray-200">
-                    <h3 class="text-sm font-bold text-[#1E293B] mb-3">Informasi Akademik</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <h2 class="text-base font-bold text-slate-900">Isi Identitas Diri & Riwayat Akademik</h2>
+                    <p class="mb-4 text-xs text-slate-500">Pastikan nomor WhatsApp dan email aktif untuk komunikasi pendaftaran.</p>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
-                            <label class="block text-xs font-semibold text-[#1E293B] mb-1">Universitas / Kampus</label>
-                            <input type="text" name="university" value="{{ old('university') }}" placeholder="Contoh : universitas Lambung mangkurat" class="w-full px-4 py-2 rounded-full border border-gray-300 text-xs focus:ring-2 focus:ring-[#2BB0C1] bg-white">
+                            <label for="full_name" class="mb-1 block text-xs font-bold text-slate-700">Nama Lengkap beserta Gelar *</label>
+                            <input id="full_name" type="text" name="full_name" value="{{ old('full_name') }}" required autocomplete="name" placeholder="Contoh: Athaya Laily Syafitri, S.Pd" class="w-full rounded-full border border-slate-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-[#1E293B] mb-1">Program Studi</label>
-                            <input type="text" name="study_program" value="{{ old('study_program') }}" placeholder="Contoh : Pendidikan Fisika" class="w-full px-4 py-2 rounded-full border border-gray-300 text-xs focus:ring-2 focus:ring-[#2BB0C1] bg-white">
+                            <label for="email" class="mb-1 block text-xs font-bold text-slate-700">Alamat Email Aktif *</label>
+                            <input id="email" type="email" name="email" value="{{ old('email') }}" required autocomplete="email" placeholder="nama@email.com" class="w-full rounded-full border border-slate-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-[#1E293B] mb-1">Semester Saat ini/Lulus</label>
-                            <input type="text" name="semester" value="{{ old('semester') }}" placeholder="Semester 6" class="w-full px-4 py-2 rounded-full border border-gray-300 text-xs focus:ring-2 focus:ring-[#2BB0C1] bg-white">
+                            <label for="phone_number" class="mb-1 block text-xs font-bold text-slate-700">Nomor WhatsApp Aktif *</label>
+                            <input id="phone_number" type="tel" name="phone_number" value="{{ old('phone_number') }}" required autocomplete="tel" placeholder="08XX-XXXX-XXXX" class="w-full rounded-full border border-slate-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        </div>
+                        <div>
+                            <label for="domicile_address" class="mb-1 block text-xs font-bold text-slate-700">Alamat Domisili *</label>
+                            <input id="domicile_address" type="text" name="domicile_address" value="{{ old('domicile_address') }}" required autocomplete="street-address" placeholder="Kecamatan, kota/kabupaten" class="w-full rounded-full border border-slate-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                         </div>
                     </div>
                 </div>
 
-                <!-- Pilihan Jenjang Mengajar -->
-                <div>
-                    <label class="block text-sm font-bold text-[#1E293B] mb-2">Pilih Pengajuan Jenjang Awal (Bisa Pilih lebih dari satu)</label>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <section class="rounded-2xl border border-slate-200 bg-sky-50/70 p-5">
+                    <h3 class="mb-3 text-sm font-bold text-slate-900">Informasi Akademik</h3>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div>
+                            <label for="university" class="mb-1 block text-xs font-semibold text-slate-700">Universitas / Kampus *</label>
+                            <input id="university" type="text" name="university" value="{{ old('university') }}" required placeholder="Nama universitas" class="w-full rounded-full border border-slate-900 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        </div>
+                        <div>
+                            <label for="study_program" class="mb-1 block text-xs font-semibold text-slate-700">Program Studi *</label>
+                            <input id="study_program" type="text" name="study_program" value="{{ old('study_program') }}" required placeholder="Contoh: Pendidikan Fisika" class="w-full rounded-full border border-slate-900 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        </div>
+                        <div>
+                            <label for="semester" class="mb-1 block text-xs font-semibold text-slate-700">Semester Saat Ini / Tahun Lulus *</label>
+                            <input id="semester" type="text" name="semester" value="{{ old('semester') }}" required placeholder="Contoh: Semester 6" class="w-full rounded-full border border-slate-900 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        </div>
+                    </div>
+                </section>
+
+                <fieldset>
+                    <legend class="mb-3 text-base font-bold text-slate-900">Pilih Jenjang Pengajuan *</legend>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <template x-for="level in levels" :key="level.id">
-                            <div 
-                                class="p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between"
-                                :class="selectedLevels.includes(level.id) ? 'bg-[#FFF5D6] border-[#F2C94C]' : 'bg-gray-100 border-gray-200'"
-                                @click="toggleLevel(level.id)"
-                            >
-                                <div>
-                                    <h4 class="font-bold text-base text-[#1E293B]" x-text="level.id"></h4>
-                                    <p class="text-[11px] text-gray-500 mt-1" x-text="level.desc"></p>
-                                </div>
-                                <input type="checkbox" name="selected_levels[]" :value="level.id" :checked="selectedLevels.includes(level.id)" class="hidden">
-                            </div>
+                            <label class="relative flex cursor-pointer flex-col justify-between rounded-xl p-4 transition"
+                                :class="selectedLevels.includes(level.id) ? 'border-2 border-slate-900 bg-amber-100' : 'border border-slate-300 bg-white hover:border-amber-400'">
+                                <input type="checkbox" name="selected_levels[]" :value="level.id" :checked="selectedLevels.includes(level.id)" @change="toggleLevel(level.id)" class="sr-only">
+                                <span class="mb-2 flex items-center justify-between">
+                                    <span class="text-xl" aria-hidden="true">&#128218;</span>
+                                    <span x-show="selectedLevels.includes(level.id)" class="flex h-5 w-5 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white" aria-hidden="true">&#10003;</span>
+                                </span>
+                                <span class="text-sm font-bold text-slate-900" x-text="level.id"></span>
+                                <span class="mb-3 mt-1 text-[11px] text-slate-500" x-text="level.desc"></span>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-600">Jenjang pengajuan</span>
+                            </label>
                         </template>
                     </div>
-                </div>
+                    @error('selected_levels') <p class="mt-2 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </fieldset>
 
-                <!-- Fokus Mata Pelajaran & Notice Box -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                <div class="grid grid-cols-1 items-center gap-4 md:grid-cols-2">
                     <div>
-                        <label class="block text-xs font-bold text-[#1E293B] mb-1">Fokus Mata Pelajaran</label>
-                        <input type="text" name="focus_subject" value="{{ old('focus_subject') }}" placeholder="Matematika & Fisika" class="w-full px-4 py-2.5 rounded-full border border-gray-300 text-sm focus:ring-2 focus:ring-[#2BB0C1]">
+                        <label for="focus_subject" class="mb-1 block text-xs font-bold text-slate-700">Fokus Mata Pelajaran *</label>
+                        <input id="focus_subject" type="text" name="focus_subject" value="{{ old('focus_subject') }}" required placeholder="Matematika dan Fisika" class="w-full rounded-full border border-slate-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
-                    <div class="bg-[#D3F9D8] border border-[#A1E8AF] p-4 rounded-xl text-xs text-[#22543D]">
-                        <strong>Catatan Verifikasi:</strong> Admin akan meninjau Transkrip Nilai/KHS dan CV kamu untuk mencocokkan kelayakan kualifikasi pada jenjang yang kamu centang.
-                    </div>
+                    <aside class="rounded-2xl border border-emerald-300 bg-emerald-100/70 p-5 text-xs leading-relaxed text-slate-700">
+                        <p class="mb-1 font-semibold text-slate-900">Catatan Verifikasi</p>
+                        <p>Admin akan meninjau transkrip nilai atau KHS dan CV untuk mencocokkan kualifikasi pada jenjang yang diajukan.</p>
+                    </aside>
                 </div>
 
-                <div class="flex justify-end pt-4">
-                    <button type="button" @click="step = 2" class="bg-[#FFC043] hover:bg-[#F2B530] text-[#1E293B] font-bold px-8 py-3 rounded-full shadow transition-all flex items-center gap-2 text-sm">
-                        <span>Selanjutnya</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                <div class="flex justify-end pt-2">
+                    <button type="button" @click="step = 2" class="flex items-center gap-2 rounded-full border-2 border-slate-900 bg-amber-400 px-8 py-3 text-sm font-bold text-slate-900 shadow-sm transition hover:bg-amber-500">
+                        Selanjutnya <span aria-hidden="true">&#8594;</span>
                     </button>
                 </div>
-            </div>
+            </section>
 
-            <!-- ================= STEP 2: UNGGAH BERKAS ================= -->
-            <div x-show="step === 2" x-cloak class="space-y-6">
+            <section x-show="step === 2" x-cloak class="space-y-6">
                 <div>
-                    <h2 class="text-xl font-extrabold text-[#1E293B]">Unggah Berkas Kualifikasi</h2>
-                    <p class="text-xs text-[#64748B]">Unggah berkas resmi untuk proses verifikasi kredensial oleh Admin.</p>
+                    <h2 class="text-base font-bold text-slate-900">Unggah Berkas Kualifikasi</h2>
+                    <p class="text-xs text-slate-500">Berkas resmi digunakan untuk proses verifikasi oleh admin.</p>
                 </div>
 
-                <!-- Alert Server Validation Error (Diterima dari Controller / FormRequest) -->
-                @if ($errors->any())
-                    <div class="bg-[#FFDADA] border border-[#FF9B9B] rounded-xl p-4 text-[#C53030]">
-                        <h4 class="font-bold text-sm">Validasi File Gagal</h4>
-                        <ul class="text-xs mt-1 list-disc list-inside">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div class="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+                        <label for="cv_file" class="block text-xs font-bold text-slate-900">1. Berkas CV (PDF) *</label>
+                        <label for="cv_file" class="inline-flex cursor-pointer rounded-full bg-teal-600 px-5 py-2.5 text-xs font-bold text-white transition hover:bg-teal-700">Pilih File CV
+                            <input id="cv_file" type="file" name="cv_file" required @change="handleFileUpload($event, 'cv')" accept=".pdf,application/pdf" class="sr-only">
+                        </label>
+                        <p class="text-[10px] text-slate-500" x-text="fileNames.cv || 'PDF, maksimal 10 MB'"></p>
                     </div>
-                @endif
-
-                <!-- Upload Boxes -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- 1. File CV -->
-                    <div class="border border-gray-300 bg-[#F8FAFC] rounded-2xl p-6 text-center space-y-3">
-                        <label class="block font-bold text-xs text-[#1E293B] text-left">1. Berkas CV (Curriculum Vitae)*</label>
-                        <div class="py-4">
-                            <label class="bg-[#2BB0C1] hover:bg-[#2392A0] text-white text-xs font-bold px-5 py-2.5 rounded-full cursor-pointer inline-block transition">
-                                <span>Pilih File CV (.PDF)</span>
-                                <input type="file" name="cv_file" @change="setFileName($event, 'cv')" accept=".pdf" class="hidden">
-                            </label>
-                            <p class="text-[10px] text-gray-400 mt-2" x-text="fileNames.cv || 'Hanya format .PDF (Maks. 10 MB)'"></p>
-                        </div>
+                    <div class="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+                        <label for="ktp_ktm_file" class="block text-xs font-bold text-slate-900">2. Foto KTP / KTM *</label>
+                        <label for="ktp_ktm_file" class="inline-flex cursor-pointer rounded-full bg-teal-600 px-5 py-2.5 text-xs font-bold text-white transition hover:bg-teal-700">Pilih KTP / KTM
+                            <input id="ktp_ktm_file" type="file" name="ktp_ktm_file" required @change="handleFileUpload($event, 'ktp')" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" class="sr-only">
+                        </label>
+                        <p class="text-[10px] text-slate-500" x-text="fileNames.ktp || 'PDF, JPG, atau PNG; maksimal 10 MB'"></p>
                     </div>
-
-                    <!-- 2. KTP/KTM -->
-                    <div class="border border-gray-300 bg-[#F8FAFC] rounded-2xl p-6 text-center space-y-3">
-                        <label class="block font-bold text-xs text-[#1E293B] text-left">2. Foto KTP / KTM Mahasiswa *</label>
-                        <div class="py-4">
-                            <label class="bg-[#2BB0C1] hover:bg-[#2392A0] text-white text-xs font-bold px-5 py-2.5 rounded-full cursor-pointer inline-block transition">
-                                <span>Unggah KTP/KTM</span>
-                                <input type="file" name="ktp_ktm_file" @change="setFileName($event, 'ktp')" accept=".pdf,.jpg,.png" class="hidden">
-                            </label>
-                            <p class="text-[10px] text-gray-400 mt-2" x-text="fileNames.ktp || 'Format .PDF / .JPG / .PNG'"></p>
-                        </div>
+                    <div class="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+                        <label for="transcript_file" class="block text-xs font-bold text-slate-900">3. Transkrip Nilai / KHS (PDF) *</label>
+                        <label for="transcript_file" class="inline-flex cursor-pointer rounded-full bg-teal-600 px-5 py-2.5 text-xs font-bold text-white transition hover:bg-teal-700">Pilih Transkrip / KHS
+                            <input id="transcript_file" type="file" name="transcript_file" required @change="handleFileUpload($event, 'transcript')" accept=".pdf,application/pdf" class="sr-only">
+                        </label>
+                        <p class="text-[10px] text-slate-500" x-text="fileNames.transcript || 'PDF, maksimal 10 MB'"></p>
                     </div>
-
-                    <!-- 3. Transkrip Nilai -->
-                    <div class="border border-gray-300 bg-[#F8FAFC] rounded-2xl p-6 text-center space-y-3">
-                        <label class="block font-bold text-xs text-[#1E293B] text-left">3. Scan Transkrip Nilai / KHS*</label>
-                        <div class="py-4">
-                            <label class="bg-[#2BB0C1] hover:bg-[#2392A0] text-white text-xs font-bold px-5 py-2.5 rounded-full cursor-pointer inline-block transition">
-                                <span>Unggah KHS/Transkrip</span>
-                                <input type="file" name="transcript_file" @change="setFileName($event, 'transcript')" accept=".pdf" class="hidden">
-                            </label>
-                            <p class="text-[10px] text-gray-400 mt-2" x-text="fileNames.transcript || 'Hanya format .PDF (Maks. 10 MB)'"></p>
+                    <div class="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+                        <div class="flex items-center justify-between gap-2">
+                            <label for="certificate_file" class="block text-xs font-bold text-slate-900">4. Sertifikat Lomba / Keahlian</label>
+                            <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-600">Opsional</span>
                         </div>
-                    </div>
-
-                    <!-- 4. Sertifikat (Opsional) -->
-                    <div class="border border-gray-300 bg-[#F8FAFC] rounded-2xl p-6 text-center space-y-3 relative">
-                        <span class="absolute top-4 right-4 bg-gray-400 text-white text-[10px] font-bold px-3 py-0.5 rounded-full">Opsional</span>
-                        <label class="block font-bold text-xs text-[#1E293B] text-left">4. Sertifikat Lomba / Keahlian</label>
-                        <div class="py-4">
-                            <label class="bg-[#2BB0C1] hover:bg-[#2392A0] text-white text-xs font-bold px-5 py-2.5 rounded-full cursor-pointer inline-block transition">
-                                <span>Pilih Sertifikat</span>
-                                <input type="file" name="certificate_file" @change="setFileName($event, 'certificate')" accept=".pdf" class="hidden">
-                            </label>
-                            <p class="text-[10px] text-gray-400 mt-2" x-text="fileNames.certificate || 'Hanya format .PDF (Maks. 10 MB)'"></p>
-                        </div>
+                        <label for="certificate_file" class="inline-flex cursor-pointer rounded-full bg-teal-600 px-5 py-2.5 text-xs font-bold text-white transition hover:bg-teal-700">Pilih Sertifikat
+                            <input id="certificate_file" type="file" name="certificate_file" @change="handleFileUpload($event, 'certificate')" accept=".pdf,application/pdf" class="sr-only">
+                        </label>
+                        <p class="text-[10px] text-slate-500" x-text="fileNames.certificate || 'PDF, maksimal 10 MB'"></p>
                     </div>
                 </div>
 
-                <!-- Link Video Micro-teaching -->
                 <div>
-                    <label class="block text-xs font-bold text-[#1E293B] mb-1">Link Video Perkenalan / Micro-teaching Singkat (Opsional - YouTube / Google Drive)</label>
-                    <input type="url" name="video_link" value="{{ old('video_link') }}" placeholder="https://link//youtube" class="w-full px-4 py-2.5 rounded-full border border-gray-300 text-sm focus:ring-2 focus:ring-[#2BB0C1]">
+                    <label for="video_link" class="mb-1 block text-xs font-bold text-slate-700">Tautan video perkenalan atau simulasi mengajar (opsional)</label>
+                    <input id="video_link" type="url" name="video_link" value="{{ old('video_link') }}" placeholder="https://youtube.com/..." class="w-full rounded-full border border-slate-900 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
 
-                <!-- Navigation Buttons -->
-                <div class="flex items-center justify-between pt-6">
-                    <button type="button" @click="step = 1" class="text-xs font-bold text-[#1E293B] hover:underline flex items-center gap-1">
-                        ← Kembali
+                <p x-show="errorMessage" x-cloak role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800" x-text="errorMessage"></p>
+
+                <div class="flex items-center justify-between border-t border-slate-200 pt-5">
+                    <button type="button" @click="step = 1" class="flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-slate-900">
+                        <span aria-hidden="true">&#8592;</span> Kembali
                     </button>
-                    <button type="submit" class="bg-[#FFC043] hover:bg-[#F2B530] text-[#1E293B] font-bold px-10 py-3 rounded-full shadow transition-all text-sm">
-                        Kirim
-                    </button>
+                    <button type="submit" class="rounded-full border-2 border-slate-900 bg-amber-400 px-10 py-3 text-sm font-bold text-slate-900 shadow-sm transition hover:bg-amber-500">Kirim Pendaftaran</button>
                 </div>
-            </div>
+            </section>
         </form>
-    </div>
+    </main>
 </x-common.app-layout>

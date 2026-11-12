@@ -1,96 +1,45 @@
-<div x-show="currentStep === 3" x-cloak class="space-y-6">
-    <div>
-        <h2 class="text-xl font-bold text-slate-900">Pilih Jenis Paket Bimbingan & Mode Squad Patungan</h2>
-        <p class="text-xs text-slate-500 mt-1">Pilih belajar mandiri atau bergabung dengan squad patungan teman untuk hemat biaya hingga 35%.</p>
+<section x-show="step === 3" x-cloak class="rounded-3xl border-2 border-slate-900 bg-white p-5 md:p-7">
+    <div class="mb-5">
+        <h2 class="text-lg font-extrabold text-slate-900 md:text-xl">Pilih jenis paket bimbingan & mode kelompok</h2>
+        <p class="mt-1 text-xs text-slate-500">Pilih jumlah sesi dan cara belajar bersama tutor pilihanmu.</p>
     </div>
 
-    <!-- PILIHAN A: PAKET BELAJAR -->
     <div>
-        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">PILIHAN A: PAKET BELAJAR</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div @click="form.session_package = 1; calculatePricing()" 
-                 :class="form.session_package === 1 ? 'border-2 border-slate-900 bg-white' : 'border border-slate-300 bg-white'"
-                 class="p-5 rounded-2xl cursor-pointer transition">
-                <span class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 rounded-md">Fleksibel</span>
-                <h4 class="font-bold text-base text-slate-900 mt-2">1 Sesi Instan</h4>
-                <p class="text-xs text-slate-500 mt-1">60 menit fokus tuntas tugas harian, bedah kisi-kisi ulangan.</p>
-                <div class="mt-4 font-bold text-sm text-slate-900">Rp 75.000 <span class="text-xs font-normal text-slate-400">/ sesi</span></div>
-            </div>
+        <h3 class="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-slate-600">Pilih jumlah sesi</h3>
+        <div class="grid gap-3 md:grid-cols-2">
+            <button type="button" @click="sessionPackage = 1; calculatePricing()" :aria-pressed="Number(sessionPackage) === 1" :class="Number(sessionPackage) === 1 ? 'border-2 border-slate-900 bg-white ring-1 ring-slate-200' : 'border border-slate-300 bg-white hover:border-slate-700'" class="rounded-2xl p-4 text-left transition">
+                <div class="flex items-start justify-between gap-3"><div><span class="rounded bg-slate-100 px-2 py-1 text-[9px] font-bold text-slate-700">FLEKSIBEL</span><h4 class="mt-2 text-sm font-extrabold text-slate-900">1 Sesi Instan</h4><p class="mt-1 text-[11px] text-slate-500">Satu pertemuan untuk kebutuhan belajarmu.</p></div><span class="mt-1 h-4 w-4 rounded-full border-2" :class="Number(sessionPackage) === 1 ? 'border-teal-600 bg-teal-600 ring-2 ring-teal-100' : 'border-slate-400'"></span></div>
+                <div class="mt-3 border-t border-slate-200 pt-2 text-xs font-extrabold text-slate-900" x-text="pricing && Number(sessionPackage) === 1 ? `${rupiah(pricing.total_amount)} total` : (selectedPackage ? `${rupiah(selectedPackage.teacher_rate_per_session)} / sesi` : 'Tarif mengikuti pilihan tutor')"></div>
+            </button>
 
-            <div @click="form.session_package = 4; calculatePricing()" 
-                 :class="form.session_package = 4 ? 'border-2 border-teal-600 bg-teal-50/20' : 'border border-slate-300 bg-white'"
-                 class="p-5 rounded-2xl cursor-pointer transition relative">
-                <span class="text-[10px] font-bold px-2 py-0.5 bg-teal-600 text-white rounded-md">Terpopuler</span>
-                <h4 class="font-bold text-base text-slate-900 mt-2">Paket 4 Sesi Intensif Bulanan</h4>
-                <p class="text-xs text-slate-500 mt-1">Garansi Rapor Belajar & Studio Kuis. 4x pertemuan terjadwal rutin per bulan.</p>
-                <div class="mt-4 font-bold text-sm text-slate-900">Rp 225.000 <span class="text-xs font-semibold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full">Hemat Rp 75rb</span></div>
-            </div>
+            <button type="button" @click="sessionPackage = 4; calculatePricing()" :aria-pressed="Number(sessionPackage) === 4" :class="Number(sessionPackage) === 4 ? 'border-2 border-teal-700 bg-cyan-50 ring-1 ring-teal-100' : 'border border-slate-300 bg-white hover:border-teal-600'" class="rounded-2xl p-4 text-left transition">
+                <div class="flex items-start justify-between gap-3"><div><span class="rounded bg-teal-600 px-2 py-1 text-[9px] font-bold text-white">PAKET RUTIN</span><h4 class="mt-2 text-sm font-extrabold text-slate-900">Paket 4 Sesi Bulanan</h4><p class="mt-1 text-[11px] text-slate-500">Empat pertemuan di hari dan jam yang sama setiap minggu.</p></div><span class="mt-1 h-4 w-4 rounded-full border-2" :class="Number(sessionPackage) === 4 ? 'border-teal-600 bg-teal-600 ring-2 ring-teal-100' : 'border-slate-400'"></span></div>
+                <div class="mt-3 border-t border-slate-200 pt-2 text-xs font-extrabold text-slate-900" x-text="pricing && Number(sessionPackage) === 4 ? `${rupiah(pricing.total_amount)} / 4 sesi` : (selectedPackage ? `${rupiah(selectedPackage.teacher_rate_per_session * 4)} / 4 sesi` : 'Tarif mengikuti pilihan tutor')"></div>
+            </button>
         </div>
     </div>
 
-    <!-- PILIHAN B: MODEL PEMESANAN -->
-    <div>
-        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">PILIHAN B: MODEL PEMESANAN (PATUNGAN SKUAD VS PRIVAT TUNGGAL)</h3>
-        <div class="space-y-3">
-            <div @click="form.format = 'joiner'; calculatePricing()" 
-                 :class="form.format === 'joiner' ? 'border-2 border-slate-900 bg-amber-50/30' : 'border border-slate-300 bg-white'"
-                 class="p-4 rounded-2xl cursor-pointer transition">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <input type="radio" name="format" :checked="form.format === 'joiner'" class="accent-amber-500">
-                        <div>
-                            <h4 class="font-bold text-sm text-slate-900">Gabung Squad Patungan Terdaftar</h4>
-                            <p class="text-xs text-slate-500">Bergabung dengan teman. Belajar tetap efektif maksimal 3-5 siswa.</p>
-                        </div>
-                    </div>
-                    <span class="text-xs font-bold text-teal-700">Rp 56.250 <span class="text-[10px] font-normal text-slate-400">/sesi</span></span>
-                </div>
-                <div x-show="form.format === 'joiner'" class="mt-3 p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
-                    <input type="text" x-model="form.squad_code" placeholder="Masukkan Kode Squad (cth: SQD-FISIKA-094)" class="text-xs w-full focus:outline-none">
-                </div>
-            </div>
+    <div class="mt-5">
+        <h3 class="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-slate-600">Pilih cara bergabung</h3>
+        <div class="space-y-2">
+            <button type="button" @click="squadOption = 'join_squad'; initializeBookingCalendar(); calculatePricing()" :aria-pressed="squadOption === 'join_squad'" :class="squadOption === 'join_squad' ? 'border-2 border-slate-900 bg-cyan-50' : 'border border-slate-300 bg-white hover:border-slate-700'" class="w-full rounded-xl p-3 text-left transition">
+                <span class="flex items-start gap-2"><span class="mt-0.5 text-teal-700" x-text="squadOption === 'join_squad' ? '⦿' : '◯'"></span><span class="min-w-0 flex-1"><span class="flex flex-wrap items-center gap-2 text-xs font-extrabold text-slate-900">Gabung kelompok belajar <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] text-emerald-800">HEMAT</span></span><span class="mt-1 block text-[10px] text-slate-500">Masukkan kode kelompok dari teman atau penyelenggara.</span></span><span class="whitespace-nowrap text-[10px] font-bold text-teal-800" x-show="pricing && squadOption === 'join_squad'" x-text="pricing ? `${rupiah(pricing.final_price_per_session)} / sesi` : ''"></span></span>
+                <div x-show="squadOption === 'join_squad'" class="mt-3 pl-5"><label class="block text-[10px] font-bold text-slate-700">Kode kelompok<input type="text" x-model="squadCode" @click.stop @input="initializeBookingCalendar()" @change="calculatePricing()" placeholder="Contoh: SQD-FISIKA-094" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-teal-600 focus:outline-none"></label></div>
+            </button>
 
-            <div @click="form.format = 'host'; calculatePricing()" 
-                 :class="form.format === 'host' ? 'border-2 border-slate-900 bg-amber-50/30' : 'border border-slate-300 bg-white'"
-                 class="p-4 rounded-2xl cursor-pointer transition flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <input type="radio" name="format" :checked="form.format === 'host'" class="accent-amber-500">
-                    <div>
-                        <h4 class="font-bold text-sm text-slate-900">Buat Skuad Baru (Inisiator & Bagikan Kode)</h4>
-                        <p class="text-xs text-slate-500">Bentuk kelompok belajarmu sendiri dan dapatkan potongan harga patungan.</p>
-                    </div>
-                </div>
-                <span class="text-xs font-bold text-slate-900">Rp 56.250 <span class="text-[10px] font-normal text-slate-400">/sesi</span></span>
-            </div>
+            <button type="button" @click="squadOption = 'create_squad'; initializeBookingCalendar(); calculatePricing()" :aria-pressed="squadOption === 'create_squad'" :class="squadOption === 'create_squad' ? 'border-2 border-slate-900 bg-amber-50' : 'border border-slate-300 bg-white hover:border-slate-700'" class="w-full rounded-xl p-3 text-left transition">
+                <span class="flex items-start gap-2"><span class="mt-0.5 text-teal-700" x-text="squadOption === 'create_squad' ? '⦿' : '◯'"></span><span class="min-w-0 flex-1"><span class="flex flex-wrap items-center gap-2 text-xs font-extrabold text-slate-900">Buat kelompok baru <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] text-amber-900">BAGIKAN KODE</span></span><span class="mt-1 block text-[10px] text-slate-500">Ajak teman belajar bersama dan berbagi biaya.</span></span><span class="whitespace-nowrap text-[10px] font-bold text-teal-800" x-show="pricing && squadOption === 'create_squad'" x-text="pricing ? `${rupiah(pricing.final_price_per_session)} / sesi` : ''"></span></span>
+                <div x-show="squadOption === 'create_squad'" class="mt-3 pl-5"><label class="block text-[10px] font-bold text-slate-700">Kapasitas kelompok (maksimal <span x-text="maxCapacity"></span> pembelajar)<input type="number" min="2" :max="maxCapacity" x-model.number="targetCapacity" @click.stop @change="calculatePricing()" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs"></label></div>
+            </button>
 
-            <div @click="form.format = 'solo'; calculatePricing()" 
-                 :class="form.format === 'solo' ? 'border-2 border-slate-900 bg-amber-50/30' : 'border border-slate-300 bg-white'"
-                 class="p-4 rounded-2xl cursor-pointer transition flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <input type="radio" name="format" :checked="form.format === 'solo'" class="accent-amber-500">
-                    <div>
-                        <h4 class="font-bold text-sm text-slate-900">Sesi Privat Solo (1 Siswa Eksklusif)</h4>
-                        <p class="text-xs text-slate-500">Perhatian 100% dari tutor khusus privat tanpa teman patungan.</p>
-                    </div>
-                </div>
-                <span class="text-xs font-bold text-slate-900">Rp 75.000 <span class="text-[10px] font-normal text-slate-400">/sesi</span></span>
-            </div>
+            <button type="button" @click="squadOption = 'solo'; initializeBookingCalendar(); calculatePricing()" :aria-pressed="squadOption === 'solo'" :class="squadOption === 'solo' ? 'border-2 border-slate-900 bg-white' : 'border border-slate-300 bg-white hover:border-slate-700'" class="w-full rounded-xl p-3 text-left transition">
+                <span class="flex items-start gap-2"><span class="mt-0.5 text-teal-700" x-text="squadOption === 'solo' ? '⦿' : '◯'"></span><span class="min-w-0 flex-1"><span class="block text-xs font-extrabold text-slate-900">Privat solo</span><span class="mt-1 block text-[10px] text-slate-500">Sesi khusus untuk satu pembelajar.</span></span><span class="whitespace-nowrap text-[10px] font-bold text-slate-700" x-show="selectedPackage" x-text="selectedPackage ? `${rupiah(selectedPackage.teacher_rate_per_session)} / sesi` : ''"></span></span>
+            </button>
         </div>
     </div>
 
-    <!-- BANNER KALKULATOR -->
-    <div class="p-4 bg-amber-100/70 border border-amber-300 rounded-2xl flex items-center gap-3 text-xs text-slate-800">
-        <span class="p-2 bg-amber-400 rounded-xl">💡</span>
-        <span><strong>Kalkulator Penghematan Siswa Aktif:</strong> Kamu menghemat <strong class="text-teal-700">Rp 18.750 per sesi</strong> dengan bergabung ke Squad!</span>
+    <div x-show="squadOption !== 'solo' && pricing" class="flex items-center gap-3 rounded-xl border-2 border-slate-900 bg-amber-50 p-3 text-[11px] text-slate-800">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-400 text-lg">💡</span>
+        <span><strong>Lebih hemat bersama kelompok.</strong> Potongan saat ini <strong class="text-teal-800" x-text="pricing ? `${pricing.discount_percentage}%` : ''"></strong>; tarif akhir dihitung berdasarkan paket dan kapasitas yang dipilih.</span>
     </div>
-
-    <!-- BOTTOM ACTION BAR -->
-    <div class="flex items-center justify-between pt-6 border-t border-slate-200">
-        <button @click="goToStep(2)" class="px-6 py-2.5 rounded-full border border-slate-900 font-bold text-xs hover:bg-slate-100">
-            ← Kembali ke Pilih Tutor
-        </button>
-        <button @click="fetchSlots(); goToStep(4)" class="bg-amber-400 hover:bg-amber-500 text-slate-900 border-2 border-slate-900 font-bold px-8 py-3 rounded-full text-xs shadow-sm">
-            Lanjut Kunci Jadwal Rutin (Langkah 4) ➔
-        </button>
-    </div>
-</div>
+</section>

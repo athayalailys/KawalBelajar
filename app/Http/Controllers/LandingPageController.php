@@ -22,7 +22,10 @@ class LandingPageController extends Controller
             ->get();
 
         $programs = Schema::hasTable('module_packages')
-            ? ModulePackage::where('is_active', true)->take(3)->get()
+            ? ModulePackage::where('is_active', true)
+                ->orderBy('grade_level')
+                ->orderBy('package_name')
+                ->get()
             : collect();
 
         return view('pages.public.landing', compact('banner', 'tutors', 'programs'));

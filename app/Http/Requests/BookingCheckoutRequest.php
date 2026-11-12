@@ -24,6 +24,7 @@ class BookingCheckoutRequest extends FormRequest
             'target_capacity'  => ['required_if:format,host', 'nullable', 'integer', 'min:2', 'max:20'],
             'squad_code'       => ['required_if:format,joiner', 'nullable', 'string', Rule::exists('squads', 'squad_code')->where('status', 'open')],
             'selected_slot_id' => ['required', 'uuid', Rule::exists('teacher_availability_slots', 'slot_id')->where('is_active', true)],
+            'payment_method'   => ['sometimes', 'nullable', 'string', 'in:qris,virtual_account,credit_card'],
         ];
     }
 

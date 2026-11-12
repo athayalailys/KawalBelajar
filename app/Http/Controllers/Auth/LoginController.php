@@ -3,31 +3,75 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\View\View;
 
 class LoginController extends Controller
 {
+    public function create(): View
+    {
+        return view('pages.auth.login');
+    }
+
     public function store(Request $request): RedirectResponse
     {
+        $request->mergeIfMissing(['user_role' => 'siswa']);
+
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+            'user_role' => ['required', 'in:siswa,tutor'],
         ]);
 
-        if (! Auth::attempt($credentials)) {
+        $user = User::query()->where('email', $credentials['email'])->first();
+
+        if (!$user || !Hash::check($credentials['password'], $user->getAuthPassword())) {
             return back()->withErrors([
                 'email' => 'Email atau kata sandi tidak valid.',
-            ])->onlyInput('email');
+            ])->onlyInput('email', 'user_role');
         }
 
+        $roleMatches = match ($credentials['user_role']) {
+            'siswa' => in_array($user->role, ['student', 'admin'], true),
+            'tutor' => in_array($user->role, ['teacher', 'tutor', 'admin'], true),
+        };
+
+        if (!$roleMatches) {
+            return back()->withErrors([
+                'email' => 'Pilih peran yang sesuai dengan jenis akun Anda.',
+            ])->onlyInput('email', 'user_role');
+        }
+
+        if (!$user->is_active) {
+            return back()->withErrors([
+                'email' => 'Akun belum aktif. Hubungi admin jika akun Anda seharusnya sudah diverifikasi.',
+            ])->onlyInput('email', 'user_role');
+        }
+
+        Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        if (Auth::user()?->role === 'student') {
+        if ($user->role === 'student') {
             return redirect()->route('student.dashboard');
         }
 
-        return redirect()->intended(route('student.dashboard'));
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.tutors.index');
+        }
+
+        return redirect()->route('tutor.landing');
+    }
+
+    public function destroy(Request $request): RedirectResponse
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('home');
     }
 }

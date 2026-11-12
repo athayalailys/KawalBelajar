@@ -57,6 +57,7 @@ class StudentDashboardE2ETest extends TestCase
         $studentA = User::query()->where('email', 'siswaA@kawalbelajar.id')->firstOrFail();
         $student = Student::query()->where('user_id', $studentA->user_id)->firstOrFail();
         $session = LearningSession::query()->where('student_id', $student->student_id)->firstOrFail();
+        $session->update(['scheduled_at' => now()->subMinute()]);
         $question = QuestionBank::query()->where('exam_type', 'pre_test')->firstOrFail();
 
         $this->actingAs($studentA)
@@ -214,6 +215,9 @@ class StudentDashboardE2ETest extends TestCase
             'question_text' => 'Hasil 3 + 1?',
             'answer_key' => '4',
         ]);
+
+        // Simulasikan waktu sesi yang sudah tiba sebelum Pre-Test dimulai.
+        $session->update(['scheduled_at' => now()->subMinute()]);
 
         $this->postJson("/api/classroom/session/{$session->session_id}/submit-exam", [
             'exam_type' => 'pre_test',

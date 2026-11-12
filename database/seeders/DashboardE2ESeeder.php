@@ -11,6 +11,7 @@ use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\TeacherAvailabilitySlot;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -54,10 +55,20 @@ class DashboardE2ESeeder extends Seeder
             ['end_time' => '11:00:00', 'learning_method' => 'home_visit', 'is_active' => true],
         );
 
-        $start = now()->addDays(3)->setTime(10, 0);
-        $schedule = LearningSchedule::query()->firstOrCreate(
-            ['teacher_id' => $teacher->teacher_id, 'package_id' => $package->package_id, 'method' => 'home_visit', 'start_time' => $start],
-            ['location' => $studentA->saved_address, 'end_time' => $start->copy()->addHour()],
+        TeacherAvailabilitySlot::query()->updateOrCreate(
+            ['teacher_id' => $teacher->teacher_id, 'day_of_week' => 'Tuesday', 'start_time' => '10:00:00'],
+            ['end_time' => '11:00:00', 'learning_method' => 'online_zoom', 'is_active' => true, 'is_available' => true],
+        );
+
+        $start = Carbon::now()->next(Carbon::MONDAY)->setTime(10, 0);
+        $schedule = LearningSchedule::query()->updateOrCreate(
+            [
+                'teacher_id' => $teacher->teacher_id,
+                'package_id' => $package->package_id,
+                'method' => 'home_visit',
+                'location' => $studentA->saved_address,
+            ],
+            ['start_time' => $start, 'end_time' => $start->copy()->addHour()],
         );
 
         $order = Order::query()->firstOrCreate(
@@ -88,7 +99,7 @@ class DashboardE2ESeeder extends Seeder
             'order_status' => 'confirmed',
         ])->save();
 
-        LearningSession::query()->firstOrCreate(
+        LearningSession::query()->updateOrCreate(
             ['order_id' => $order->order_id],
             [
                 'student_id' => $studentA->student_id,

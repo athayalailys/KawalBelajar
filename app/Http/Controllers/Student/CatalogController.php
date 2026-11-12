@@ -5,23 +5,61 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\ModulePackage;
 use App\Models\Teacher;
+use App\Services\Student\BookingService;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class CatalogController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function subjects(Request $request): JsonResponse
     {
         $filters = Validator::make($request->query(), [
             'education_level' => ['required', 'string', 'in:SD,SMP,SMA,UMUM'],
             'learning_method' => ['required', 'string', 'in:home_visit,online_zoom'],
+        ])->validate();
+
+        $level = $filters['education_level'];
+        $method = $filters['learning_method'];
+        $subjects = ModulePackage::query()
+            ->where('is_active', true)
+            ->where('grade_level', $level)
+            ->whereHas('learningMaterials.teacher', function (Builder $teachers) use ($level, $method) {
+                $teachers->where('is_active', true)
+                    ->where('cv_status', 'approved')
+                    ->whereJsonContains('approved_levels', $level)
+                    ->whereHas('user', fn (Builder $user) => $user->where('is_active', true)->where('role', 'teacher'))
+                    ->whereHas('availabilitySlots', fn (Builder $slots) => $slots->where('is_active', true)
+                        ->where(fn (Builder $query) => $query->where('learning_method', $method)->orWhereNull('learning_method')))
+                    ->whereHas('tutorPackageRates', fn (Builder $rates) => $rates->whereColumn('master_tariffs.package_id', 'learning_materials.package_id')
+                        ->whereColumn('master_tariffs.teacher_level', 'teachers.teacher_level')
+                        ->where(fn (Builder $query) => $query->where('learning_method', $method)->orWhereNull('learning_method')));
+            })
+            ->whereNotNull('subject_name')
+            ->select('subject_name')
+            ->distinct()
+            ->orderBy('subject_name')
+            ->pluck('subject_name')
+            ->values();
+
+        return response()->json(['success' => true, 'data' => $subjects]);
+    }
+
+    public function index(Request $request, BookingService $bookingService): JsonResponse
+    {
+        $filters = Validator::make($request->query(), [
+            'education_level' => ['required', 'string', 'in:SD,SMP,SMA,UMUM'],
+            'learning_method' => ['required', 'string', 'in:home_visit,online_zoom'],
+            'subject' => ['nullable', 'string', 'max:100'],
             'search' => ['nullable', 'string', 'max:100'],
         ])->validate();
 
         $packages = ModulePackage::query()
             ->where('is_active', true)
             ->where('grade_level', $filters['education_level'])
+            ->when(!empty($filters['subject']), fn (Builder $query) => $query->where('subject_name', $filters['subject']))
             ->with('learningMaterials')
             ->orderBy('package_name')
             ->get();
@@ -60,7 +98,7 @@ class CatalogController extends Controller
             });
         }
 
-        $teachers = $teacherQuery->orderBy('teacher_id')->get()->map(function (Teacher $teacher) use ($packages, $method) {
+        $teachers = $teacherQuery->withSum('workLogs as teaching_minutes', 'duration_minutes')->orderBy('teacher_id')->get()->map(function (Teacher $teacher) use ($packages, $method, $bookingService) {
             $teacherPackages = $packages->map(function (ModulePackage $package) use ($teacher, $method) {
                 $rate = $teacher->tutorPackageRates->first(fn ($item) =>
                     $item->package_id === $package->package_id
@@ -103,19 +141,39 @@ class CatalogController extends Controller
                 return null;
             }
 
+            $teacherSlots = collect($bookingService->getTeacherSlotsWithClashDetection($teacher->teacher_id, $method));
+            $availableSlots = $teacherSlots
+                ->filter(fn (array $slot) => $slot['is_available'])
+                ->map(function (array $slot) {
+                    $weekday = [
+                        'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3,
+                        'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6, 'Sunday' => 7,
+                    ][$slot['day_of_week']] ?? null;
+                    if ($weekday === null) return null;
+
+                    $date = Carbon::today();
+                    $daysUntilSlot = ($weekday - $date->dayOfWeekIso + 7) % 7;
+                    $date->addDays($daysUntilSlot)->setTimeFromTimeString($slot['start_time']);
+                    if ($date->lte(now())) $date->addWeek();
+
+                    return $slot + ['starts_at' => $date->format('Y-m-d H:i:s'), '_sort' => $date->timestamp];
+                })
+                ->filter()
+                ->sortBy('_sort')
+                ->first();
+
             return [
                 'teacher_id' => $teacher->teacher_id,
                 'full_name' => $teacher->user?->full_name,
                 'teacher_level' => $teacher->teacher_level,
                 'focus_subject' => $teacher->focus_subject,
                 'university' => $teacher->university,
+                'study_program' => $teacher->study_program,
+                'total_teaching_hours' => round(((int) $teacher->teaching_minutes) / 60, 1),
+                'rating' => null,
+                'next_available_slot' => $availableSlots ? collect($availableSlots)->except('_sort') : null,
                 'learning_method' => $method,
-                'availability_slots' => $teacher->availabilitySlots->map(fn ($slot) => [
-                    'slot_id' => $slot->slot_id,
-                    'day_of_week' => $slot->day_of_week,
-                    'start_time' => $slot->start_time,
-                    'end_time' => $slot->end_time,
-                ])->values(),
+                'availability_slots' => $teacherSlots->values(),
                 'packages' => $teacherPackages,
             ];
         })->filter()->values();

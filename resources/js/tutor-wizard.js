@@ -28,21 +28,21 @@ export default () => ({
 
         // 1. Validasi Berkas CV (Wajib PDF)
         if (type === 'cv' && !isPdf) {
-            this.errorMessage = 'File CV wajib diunggah dalam format PDF!';
+            this.errorMessage = 'Berkas CV wajib diunggah dalam format PDF.';
             this.resetFile(event, type);
             return;
         }
 
         // 2. Validasi Transkrip / KHS (Wajib PDF)
         if (type === 'transcript' && !isPdf) {
-            this.errorMessage = 'Scan Transkrip/KHS wajib diunggah dalam format PDF!';
+            this.errorMessage = 'Pindaian transkrip/KHS wajib diunggah dalam format PDF.';
             this.resetFile(event, type);
             return;
         }
 
         // 3. Validasi KTP / KTM (Bisa PDF atau Image)
         if (type === 'ktp' && !isPdf && !isImage) {
-            this.errorMessage = 'Foto KTP/KTM harus berformat PDF, JPG, atau PNG!';
+            this.errorMessage = 'Foto KTP/KTM harus berformat PDF, JPG, atau PNG.';
             this.resetFile(event, type);
             return;
         }

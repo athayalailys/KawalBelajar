@@ -15,9 +15,10 @@ class SubmitExamRequest extends FormRequest
     {
         return [
             'exam_type' => ['required', 'string', 'in:pre_test,post_test'],
-            'answers' => ['required', 'array', 'min:1'],
+            'answers' => ['required', 'array'],
             'answers.*.question_id' => ['required', 'uuid', 'distinct'],
-            'answers.*.answer' => ['required', 'string', 'max:5000'],
+            // Empty answers are accepted so a timed exam can be submitted when time runs out.
+            'answers.*.answer' => ['present', 'string', 'max:5000'],
         ];
     }
 }

@@ -10,31 +10,26 @@
 <body class="bg-slate-50 text-slate-800 antialiased font-sans">
 
     <!-- NAVBAR -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2 font-bold text-teal-700 text-xl">
-                <span>🎓 KawalBelajar</span>
-            </div>
-            <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-                <a href="#" class="hover:text-teal-600">Beranda</a>
-                <a href="#" class="hover:text-teal-600">Program</a>
-                <a href="#" class="hover:text-teal-600">Menjadi Tutor</a>
-                <a href="#" class="hover:text-teal-600">Penawaran</a>
-            </nav>
-            <div class="flex items-center gap-3">
-                <a href="/login" class="text-sm font-semibold px-4 py-2 hover:text-teal-600">Masuk</a>
-                <a href="#" class="bg-amber-400 hover:bg-amber-500 text-slate-900 border-2 border-slate-900 text-sm font-bold px-5 py-2 rounded-full">Daftar Gratis</a>
-            </div>
+    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="{{ route('home') }}" class="flex items-center gap-2 font-extrabold text-lg text-slate-900 tracking-tight">
+                <span class="p-1.5 bg-amber-400 rounded-xl">🎓</span> KawalBelajar
+            </a>
+            <a href="{{ ($returnTo ?? 'home') === 'login' ? route('login') : route('home') }}"
+                class="inline-flex items-center gap-2 px-5 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold rounded-full transition-all shadow-sm">
+                <span aria-hidden="true">&#8592;</span>
+                {{ ($returnTo ?? 'home') === 'login' ? 'Kembali masuk' : 'Kembali ke Beranda' }}
+            </a>
         </div>
     </header>
 
     <!-- FORM CONTAINER WITH ALPINE.JS STATE -->
-    <main class="max-w-5xl mx-auto px-4 py-8" x-data="studentRegisterForm()">
+    <main class="max-w-5xl mx-auto px-4 py-8" x-data="studentRegisterForm()" data-register-url="{{ route('api.student.register') }}">
         
         <!-- HERO BANNER -->
         <div class="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-6 mb-8">
             <h1 class="text-2xl font-bold text-slate-900 mb-1">Bergabung Menjadi Pembelajar KawalBelajar</h1>
-            <p class="text-slate-600 text-sm mb-6">Lengkapi data siswa dan pengamanan orang tua untuk bimbingan tatap muka (Home Visit) dan kelas daring bergaransi.</p>
+            <p class="text-slate-600 text-sm mb-6">Lengkapi data pembelajar dan pengamanan orang tua untuk bimbingan tatap muka di rumah maupun kelas daring.</p>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white p-4 rounded-xl border border-amber-200 flex items-start gap-3">
@@ -75,7 +70,7 @@
                         <input type="text" x-model="form.full_name" required placeholder="Muhammad Rizky Pratama" class="w-full px-4 py-3 rounded-full border border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Alamat Email Aktif (Login & Bukti Invoice) *</label>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Alamat email aktif (untuk masuk dan menerima tagihan) *</label>
                         <input type="email" x-model="form.email" required placeholder="rizky.pratama@edu.kawalbelajar.id" class="w-full px-4 py-3 rounded-full border border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm">
                     </div>
                     <div>
@@ -91,7 +86,7 @@
 
             <!-- SECTION 2: JENJANG PENDIDIKAN -->
             <div>
-                <h3 class="font-bold text-slate-900 text-base mb-3">Pilih Jenjang Pendidikan Siswa (Bisa Pilih Sesuai Tingkat)</h3>
+                <h3 class="font-bold text-slate-900 text-base mb-3">Pilih jenjang pendidikan pembelajar</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     
                     <!-- SD -->
@@ -164,7 +159,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Alamat Lengkap Rumah & Patokan Fisik (Home Visit)</label>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Alamat lengkap dan patokan rumah untuk bimbingan tatap muka</label>
                         <input type="text" x-model="form.saved_address" placeholder="Jl. Brigjen H. Hasan Basry No. 45, Banjarmasin" class="w-full px-4 py-3 rounded-full border border-slate-900 text-sm">
                     </div>
                     <div>
@@ -178,14 +173,14 @@
 
                 <div class="bg-emerald-100/70 border border-emerald-300 rounded-2xl p-5 text-xs text-slate-700 leading-relaxed">
                     <p class="font-semibold text-slate-900 mb-1">Catatan Verifikasi & Keamanan:</p>
-                    <p>Sistem akan memetakan tutor terdekat berdasarkan koordinat GPS rumah. Mode patungan tetangga (Squad) otomatis aktif jika terdapat murid di radius 2 km untuk menghemat biaya bimbingan hingga 35%.</p>
+                    <p>Sistem akan mencari tutor terdekat berdasarkan titik lokasi rumah. Kelompok belajar dapat dibentuk bersama pembelajar lain di sekitar untuk membantu menghemat biaya.</p>
                 </div>
             </div>
 
             <!-- SUBMIT BUTTON -->
             <div class="flex justify-end pt-4">
                 <button type="submit" :disabled="loading" class="bg-amber-400 hover:bg-amber-500 text-slate-900 border-2 border-slate-900 font-bold px-8 py-3 rounded-full flex items-center gap-2 shadow-sm transition disabled:opacity-50">
-                    <span x-text="loading ? 'Memproses...' : 'Selanjutnya ➔'"></span>
+                    <span x-text="loading ? 'Sedang menyimpan…' : 'Lanjutkan ➔'"></span>
                 </button>
             </div>
 
@@ -223,7 +218,7 @@
                 async submitForm() {
                     this.loading = true;
                     try {
-                        const response = await fetch(@json(route('api.student.register')), {
+                        const response = await fetch(this.$root.dataset.registerUrl, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -240,7 +235,7 @@
                             alert(result.message || 'Terjadi kesalahan validasi.');
                         }
                     } catch (error) {
-                        alert('Gagal terhubung ke server.');
+                        alert('Tidak dapat terhubung. Periksa koneksi internet lalu coba lagi.');
                     } finally {
                         this.loading = false;
                     }

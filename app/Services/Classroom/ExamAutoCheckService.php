@@ -6,6 +6,7 @@ use App\Models\LearningSession;
 use App\Models\EvaluationScore;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ExamAutoCheckService
@@ -17,8 +18,20 @@ class ExamAutoCheckService
         }
 
         $session->loadMissing(['order', 'schedule']);
-        if (!$session->order || $session->order->student_id !== $studentId) {
+        if ($session->student_id !== $studentId && $session->order?->student_id !== $studentId) {
             abort(403);
+        }
+
+        if (!$session->hasStarted()) {
+            abort(403, 'Jadwal bimbingan belum dimulai. Ujian belum dapat dikerjakan.');
+        }
+
+        if ($type === 'post_test' && !EvaluationScore::query()
+            ->where('session_id', $session->session_id)
+            ->where('student_id', $studentId)
+            ->whereNotNull('pretest_score')
+            ->exists()) {
+            abort(403, 'Selesaikan Pre-Test sebelum mengerjakan Post-Test.');
         }
 
         $scoreColumn = $type === 'pre_test' ? 'pretest_score' : 'posttest_score';
@@ -55,13 +68,44 @@ class ExamAutoCheckService
         })->count();
 
         $score = (int) round(($correct / $questions->count()) * 100);
-        $evaluationScore = EvaluationScore::firstOrNew([
-            'session_id' => $session->session_id,
-            'student_id' => $studentId,
-        ]);
-        $evaluationScore->{$scoreColumn} = $score;
-        $evaluationScore->created_at ??= Carbon::now();
-        $evaluationScore->save();
+        $evaluationScore = DB::transaction(function () use ($questions, $provided, $session, $studentId, $scoreColumn, $score) {
+            $evaluationScore = EvaluationScore::query()->firstOrNew([
+                'session_id' => $session->session_id,
+                'student_id' => $studentId,
+            ]);
+            $evaluationScore->{$scoreColumn} = $score;
+            $evaluationScore->created_at ??= Carbon::now();
+
+            if ($scoreColumn === 'posttest_score' && $evaluationScore->pretest_score !== null) {
+                $evaluationScore->progress_percentage = $score - (int) $evaluationScore->pretest_score;
+            }
+            $evaluationScore->save();
+
+            foreach ($questions as $question) {
+                $answer = $provided->get((string) $question->question_id);
+                $answerText = (string) ($answer['answer'] ?? '');
+                $isCorrect = $answer !== null && mb_strtolower(trim($answerText))
+                    === mb_strtolower(trim((string) $question->answer_key));
+
+                DB::table('student_answers')->updateOrInsert(
+                    [
+                        'session_id' => $session->session_id,
+                        'student_id' => $studentId,
+                        'question_id' => $question->question_id,
+                    ],
+                    [
+                        'answer_id' => (string) Str::uuid(),
+                        'selected_answer' => $answerText,
+                        'student_answer' => $answerText,
+                        'is_correct' => $isCorrect,
+                        'answered_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
+                    ]
+                );
+            }
+
+            return $evaluationScore->refresh();
+        });
         $evaluationScore->setAttribute('exam_type', $type);
 
         return $evaluationScore;

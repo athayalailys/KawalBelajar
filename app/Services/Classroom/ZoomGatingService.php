@@ -10,6 +10,7 @@ class ZoomGatingService
 {
     public function canAccessMeetingUrl(LearningSession $session, User $user): bool
     {
+        $session->loadMissing('order');
         $role = strtolower((string) $user->role);
 
         if (in_array($role, ['teacher', 'tutor'], true)) {
@@ -21,8 +22,12 @@ class ZoomGatingService
             return false;
         }
 
+        if (!$session->hasStarted()) {
+            return false;
+        }
+
         $studentId = $user->student?->student_id;
-        if (!$studentId) {
+        if (!$studentId || ($session->student_id !== $studentId && $session->order?->student_id !== $studentId)) {
             return false;
         }
 
@@ -46,12 +51,16 @@ class ZoomGatingService
      */
     public function getGatedRoomAccess(LearningSession $session, string $studentId): array
     {
+        $session->loadMissing('schedule');
+        $hasStarted = $session->hasStarted();
         $hasCompletedPreTest = $this->isPreTestPassed($session->session_id, $studentId);
 
-        if (!$hasCompletedPreTest) {
+        if (!$hasStarted || !$hasCompletedPreTest) {
             return [
                 'is_unlocked' => false,
-                'message' => 'Wajib selesaikan Pre-Test terlebih dahulu untuk membuka ruang belajar.',
+                'message' => !$hasStarted
+                    ? 'Ruang belajar tersedia setelah waktu sesi dimulai.'
+                    : 'Wajib selesaikan Pre-Test terlebih dahulu untuk membuka ruang belajar.',
                 'zoom_meeting_url' => null,
                 'address' => null,
             ];
@@ -68,10 +77,24 @@ class ZoomGatingService
 
     public function checkSessionAccess(LearningSession $session, string $studentId): array
     {
-        $isLocked = !$this->isPreTestPassed($session->session_id, $studentId);
+        $session->loadMissing('schedule');
+        $hasStarted = $session->hasStarted();
+        $evaluation = EvaluationScore::query()
+            ->where('session_id', $session->session_id)
+            ->where('student_id', $studentId)
+            ->first(['pretest_score', 'posttest_score']);
+        $hasPreTest = $evaluation?->pretest_score !== null;
+        $postTestSubmitted = $evaluation?->posttest_score !== null;
+        $isLocked = !$hasStarted || !$hasPreTest;
 
         return [
             'is_locked' => $isLocked,
+            'session_status' => $session->session_status ?? $session->status,
+            'can_start_exam' => $hasStarted && !$hasPreTest,
+            'can_take_post_test' => $hasStarted && $hasPreTest && !$postTestSubmitted,
+            'gate_reason' => !$hasStarted ? 'not_started' : (!$hasPreTest ? 'pretest_required' : null),
+            'pretest_score' => $evaluation?->pretest_score,
+            'posttest_score' => $evaluation?->posttest_score,
             'zoom_meeting_url' => $isLocked ? null : $session->zoom_meeting_url,
             'address' => $isLocked ? null : ($session->onsite_address ?? $session->student_address),
             'landmark' => $isLocked ? null : $session->address_landmark,

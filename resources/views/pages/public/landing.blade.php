@@ -23,10 +23,10 @@
                     Belajar <span class="text-brand-yellow">Lebih Terarah</span> dengan Kawal<span class="text-brand-teal">Belajar</span>
                 </h1>
                 <p class="text-sm text-brand-dark/80 leading-relaxed max-w-lg">
-                    Temukan Tutor Terbaikmu, Akses Mudah, Interaktif dan Fleksibel. Siap membantumu kapanpun dan dimanapun.
+                    Temukan tutor yang tepat dengan layanan belajar yang mudah, interaktif, dan fleksibel—siap mendampingimu kapan pun dan di mana pun.
                 </p>
                 <div class="pt-2">
-                    <a href="#paket" class="inline-block bg-brand-yellow hover:bg-brand-yellow-hover text-brand-dark font-bold px-8 py-3.5 rounded-full text-sm shadow-md transition">Daftar Sekarang</a>
+                    <a href="#program" class="inline-block bg-brand-yellow hover:bg-brand-yellow-hover text-brand-dark font-bold px-8 py-3.5 rounded-full text-sm shadow-md transition">Jelajahi Kelas</a>
                 </div>
             </div>
 
@@ -47,9 +47,9 @@
             @php
                 $benefits = [
                     ['title' => 'Tutor Terverifikasi', 'desc' => 'Akademis & Praktisi'],
-                    ['title' => 'Lokasi Fleksibel', 'desc' => 'Online & Tatap Muka'],
-                    ['title' => 'Squad Referral', 'desc' => 'Hemat hingga 50%'],
-                    ['title' => 'Rapor Evaluasi', 'desc' => 'Pantau Berkala'],
+                    ['title' => 'Pilihan Cara Belajar', 'desc' => 'Daring atau tatap muka'],
+                    ['title' => 'Belajar Berkelompok', 'desc' => 'Biaya lebih hemat'],
+                    ['title' => 'Rapor Perkembangan', 'desc' => 'Pantau kemajuan belajar'],
                 ];
             @endphp
             @foreach($benefits as $item)
@@ -60,49 +60,45 @@
             @endforeach
         </section>
 
-        <!-- 4. Program Unggulan Section -->
-        <section id="program" class="space-y-8">
-        <div class="text-center space-y-2">
-            <h2 class="font-heading text-3xl sm:text-4xl font-bold text-brand-dark tracking-tight">
-                Program Unggulan
-            </h2>
-            <p class="font-sans text-sm sm:text-base text-brand-dark/70">
-                Pilihan jenjang belajar yang disesuaikan dengan kebutuhan dan kurikulum siswa
-            </p>
-        </div>
+        <!-- 4. Katalog Kelas dikelompokkan berdasarkan jenjang -->
+        <section id="program" class="space-y-8 scroll-mt-24">
+            <div class="text-center space-y-2">
+                <span class="text-xs font-bold uppercase tracking-widest text-brand-teal">Daftar Kelas KawalBelajar</span>
+                <h2 class="font-heading text-3xl sm:text-4xl font-bold text-brand-dark tracking-tight">Pilih Kelas Sesuai Jenjang</h2>
+                <p class="font-sans text-sm sm:text-base text-brand-dark/70">Buka jenjang untuk melihat kelas dan paket belajar yang tersedia.</p>
+            </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            @forelse($programs ?? [] as $program)
-                <!-- Binding data dinamis dari Controller ke x-cards.program -->
-                <x-landing.program-card
-                    :badge="$program->grade_level"
-                    :title="$program->package_name"
-                    :description="$program->description"
-                    :actionUrl="route('student.booking', ['package_id' => $program->package_id])"
-                />
-            @empty
-                <!-- Fallback statis jika data database belum di-seed -->
-                <x-landing.program-card
-                    badge="SD / Sederajat"
-                    title="Paket SD Tematik"
-                    description="Pendampingan belajar PR, pemahaman konsep dasar matematika, dan persiapan ujian sekolah."
-                    actionUrl="#daftar"
-                />
-                <x-landing.program-card
-                    badge="SMP / Sederajat"
-                    title="Paket SMP Reguler"
-                    description="Fokus pendalaman materi IPA, IPS, Matematika, dan persiapan Asesmen Nasional."
-                    actionUrl="#daftar"
-                />
-                <x-landing.program-card
-                    badge="SMA / UTBK"
-                    title="Paket SMA & UTBK-SNBT"
-                    description="Persiapan intensif penulisan soal penalaran umum, literasi, dan persiapan masuk PTN favorit."
-                    actionUrl="#daftar"
-                />
-            @endforelse
-        </div>
-    </section>
+            @if($programs->isNotEmpty())
+                <div class="mx-auto max-w-4xl space-y-3">
+                    @foreach($programs->groupBy(fn ($program) => trim((string) ($program->grade_level ?: 'Jenjang lainnya'))) as $gradeLevel => $levelPrograms)
+                        <details class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" @if($loop->first) open @endif>
+                            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 bg-white px-5 py-4 font-heading font-bold text-brand-dark transition hover:bg-brand-light/50">
+                                <span class="flex items-center gap-3"><span class="rounded-lg bg-brand-light px-3 py-1.5 text-xs font-extrabold uppercase text-brand-teal">{{ $gradeLevel }}</span><span class="text-xs font-medium text-slate-500">{{ $levelPrograms->count() }} kelas tersedia</span></span>
+                                <span class="text-brand-teal transition group-open:rotate-180" aria-hidden="true">⌄</span>
+                            </summary>
+                            <div class="grid gap-4 border-t border-slate-100 bg-slate-50/70 p-4 sm:grid-cols-2">
+                                @foreach($levelPrograms as $program)
+                                    <article class="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                                        <div class="flex-1">
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-brand-teal">{{ $program->subject_name ?: $gradeLevel }}</p>
+                                            <h3 class="mt-1 font-heading text-base font-extrabold text-brand-dark">{{ $program->package_name }}</h3>
+                                            <p class="mt-2 text-xs leading-relaxed text-slate-600">{{ $program->description ?: 'Kelas bimbingan belajar bersama tutor KawalBelajar.' }}</p>
+                                            <p class="mt-3 text-sm font-extrabold text-brand-dark">{{ $program->base_price !== null ? 'Mulai Rp ' . number_format((float) $program->base_price, 0, ',', '.') : 'Tarif dikonfirmasi saat pemesanan' }}</p>
+                                        </div>
+                                        <a href="{{ route('student.booking', ['package_id' => $program->package_id]) }}" class="mt-4 inline-flex items-center justify-center rounded-full bg-brand-yellow px-5 py-2.5 text-xs font-bold text-brand-dark transition hover:bg-brand-yellow-hover">Pilih kelas & cari tutor <span class="ml-2" aria-hidden="true">→</span></a>
+                                    </article>
+                                @endforeach
+                            </div>
+                        </details>
+                    @endforeach
+                </div>
+            @else
+                <div class="mx-auto max-w-2xl rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+                    <h3 class="font-heading text-lg font-bold text-brand-dark">Kelas sedang disiapkan</h3>
+                    <p class="mt-2 text-sm text-slate-600">Paket belajar akan tampil di sini setelah tersedia.</p>
+                </div>
+            @endif
+        </section>
 
         <!-- 5. Cara Kerja (Flow Arrow Banner) -->
         <section class="space-y-6">
@@ -118,15 +114,15 @@
                 </div>
                 <div class="p-4 bg-brand-teal/40 rounded-brand flex flex-col justify-center">
                     <span class="font-bold text-brand-light block mb-1">2. Pilih Tutor Terverifikasi</span>
-                    <p class="text-[11px] text-brand-light/70">Cari kecocokan gaya belajar dengan tutor berpengalaman.</p>
+                    <p class="text-[11px] text-brand-light/70">Temukan tutor berpengalaman yang sesuai dengan kebutuhan belajarmu.</p>
                 </div>
                 <div class="p-4 bg-brand-teal/60 rounded-brand flex flex-col justify-center">
-                    <span class="font-bold text-brand-white block mb-1">3. Bikin Squad & Jadwal</span>
-                    <p class="text-[11px] text-brand-light/90">Belajar privat atau squad bareng teman dengan waktu fleksibel.</p>
+                    <span class="font-bold text-brand-white block mb-1">3. Atur kelompok dan jadwal</span>
+                    <p class="text-[11px] text-brand-light/90">Pilih belajar privat atau bersama teman dengan jadwal yang fleksibel.</p>
                 </div>
                 <div class="p-4 bg-brand-teal rounded-brand flex flex-col justify-center">
-                    <span class="font-bold text-brand-white block mb-1">4. Pre-Test & Evaluasi</span>
-                    <p class="text-[11px] text-brand-light/90">Ukur progres berkala lewat asesmen dan rapor perkembangan.</p>
+                    <span class="font-bold text-brand-white block mb-1">4. Tes awal dan evaluasi</span>
+                    <p class="text-[11px] text-brand-light/90">Pantau kemajuan melalui tes dan rapor belajar.</p>
                 </div>
             </div>
         </section>
@@ -135,44 +131,20 @@
         <section id="tutor" class="bg-brand-dark rounded-brand-xl p-8 md:p-12 text-brand-white space-y-8">
             <div class="text-center space-y-1">
                 <h2 class="font-heading text-3xl font-extrabold text-brand-white">Tutor Kami</h2>
-                <p class="text-xs text-brand-light/70">Temukan tutor berpengalaman yang siap membimbingmu</p>
+                <p class="text-xs text-brand-light/70">Temukan tutor berpengalaman yang siap mendampingimu.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 @forelse($tutors as $tutor)
                     <x-landing.tutor-card
                         :name="$tutor->user->full_name ?? 'Tutor Pilihan'"
-                        :location="$tutor->default_location ?? 'Online / Home Visit'"
+                        :location="$tutor->default_location ?? 'Daring atau tatap muka di rumah'"
                         :subject="$tutor->focus_subject ?? 'Tutor Terverifikasi'"
                     />
                 @empty
                     <p class="text-xs text-brand-light/60 col-span-3 text-center py-6">Data tutor belum tersedia.</p>
                 @endforelse
             </div>
-        </section>
-
-        <!-- 7. Dynamic Paket Belajar Section (ERD Table: paket_modul) -->
-        <section id="paket" class="space-y-8">
-            <div class="text-center space-y-1">
-                <h2 class="font-heading text-3xl font-extrabold">Pilih Paket Belajar</h2>
-                <p class="text-xs text-brand-dark/70">Investasi terbaik untuk masa depan prestasimu</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                @forelse($programs as $paket)
-                    <x-landing.pricing-card
-                        :badge="$paket->grade_level"
-                        :title="$paket->package_name"
-                        :formattedPrice="'Rp ' . number_format((float) $paket->base_price, 0, ',', '.')"
-                        :features="explode(',', $paket->description ?? 'Akses Modul Belajar,Sesi Konsultasi Interaktif,Pre-test & Post-test,Rapor Belajar Siswa')"
-                        :ctaUrl="route('student.booking', ['package_id' => $paket->package_id])"
-                    />
-                @empty
-                    <p class="text-xs text-brand-dark/60 col-span-3 text-center">Paket belum tersedia.</p>
-                @endforelse
-            </div>
-            
-            <p class="text-center text-xs text-brand-dark/60 pt-2">Pembayaran aman via Transfer Bank & QRIS</p>
         </section>
 
     </div>

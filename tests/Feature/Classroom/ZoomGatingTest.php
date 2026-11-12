@@ -43,6 +43,22 @@ class ZoomGatingTest extends TestCase
             ->assertJsonPath('data.is_gated', false);
     }
 
+    public function test_student_cannot_access_zoom_before_session_start_even_after_pretest(): void
+    {
+        [$studentUser, $session, $student] = $this->createSession();
+        $session->update(['scheduled_at' => now()->addHour()]);
+        EvaluationScore::create([
+            'session_id' => $session->session_id,
+            'student_id' => $student->student_id,
+            'pretest_score' => 75,
+        ]);
+
+        $this->actingAs($studentUser)
+            ->getJson("/api/classroom/session/{$session->session_id}/room")
+            ->assertForbidden()
+            ->assertJsonPath('data.gate_reason', 'not_started');
+    }
+
     public function test_tutor_can_access_zoom_url_without_pretest(): void
     {
         [, $session, , $tutorUser] = $this->createSession();
@@ -88,6 +104,7 @@ class ZoomGatingTest extends TestCase
             'student_id' => $student->student_id,
             'teacher_id' => $teacher->teacher_id,
             'learning_method' => 'online',
+            'scheduled_at' => now()->subMinute(),
             'status' => 'scheduled',
             'session_status' => 'scheduled',
             'zoom_meeting_url' => 'https://zoom.us/j/123456789',

@@ -16,7 +16,7 @@
 
             <div class="flex flex-wrap gap-2 text-xs text-slate-600 pt-2">
                 <span class="bg-white px-2.5 py-1 rounded-md border border-slate-200">📅 <span x-text="upcomingSession?.time_slot">Hari ini, 18:00 - 19:30 WITA</span></span>
-                <span class="bg-white px-2.5 py-1 rounded-md border border-slate-200">🏠 Metode: <span x-text="upcomingSession?.method">Home Visit</span></span>
+                <span class="bg-white px-2.5 py-1 rounded-md border border-slate-200">🏠 Cara belajar: <span x-text="upcomingSession?.method">Tutor datang ke rumah</span></span>
             </div>
         </div>
 
@@ -25,7 +25,7 @@
             <!-- Jika Pre-Test Terkunci -->
             <template x-if="upcomingSession?.is_locked">
                 <a :href="'/classroom/exam/' + upcomingSession?.id" class="w-full text-center py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl shadow-sm transition">
-                    Masuk Ruang Kelas & Pre-Test
+                    Buka ruang kelas dan kerjakan tes awal
                 </a>
             </template>
 

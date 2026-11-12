@@ -12,7 +12,7 @@
 
     <!-- Rata-Rata Post-Test -->
     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Rata-Rata Post-Test</div>
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Rata-rata tes akhir</div>
         <div class="my-2">
             <span class="text-2xl font-bold text-slate-900" x-text="upcomingSession?.avg_post_test || '92'"></span>
             <span class="text-xs text-slate-400">/100</span>

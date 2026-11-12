@@ -2,24 +2,50 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\LearningMaterial;
+use App\Models\ModulePackage;
+use App\Models\Teacher;
+use App\Models\TutorPackageRate;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
-     * Seed the application's database.
+     * Seed data demo yang dibutuhkan untuk menelusuri alur pembelajar.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call(DashboardE2ESeeder::class);
 
-        User::factory()->create([
-            'full_name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $teacher = Teacher::query()
+            ->whereHas('user', fn ($query) => $query->where('email', 'tutor@kawalbelajar.id'))
+            ->firstOrFail();
+        $package = ModulePackage::query()
+            ->where('package_name', 'Paket E2E Dashboard')
+            ->firstOrFail();
+
+        foreach (['home_visit', 'online_zoom'] as $method) {
+            TutorPackageRate::query()->updateOrCreate(
+                [
+                    'package_id' => $package->package_id,
+                    'teacher_level' => $teacher->teacher_level,
+                    'learning_method' => $method,
+                ],
+                ['category_rate' => 100000],
+            );
+        }
+
+        LearningMaterial::query()->updateOrCreate(
+            [
+                'teacher_id' => $teacher->teacher_id,
+                'package_id' => $package->package_id,
+                'title' => 'Modul Matematika Paket E2E',
+            ],
+            [
+                'material_type' => 'pdf',
+                'file_or_url' => null,
+                'video_duration_minutes' => null,
+            ],
+        );
     }
 }

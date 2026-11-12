@@ -21,7 +21,7 @@
                             <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded-md border border-amber-200" x-text="item.badge">Sesi Terdekat</span>
                         </div>
                         <p class="text-xs text-slate-500 mt-1">
-                            ⏰ <span x-text="item.time">18:00 - 19:30 WITA</span> • 🏠 <span x-text="item.method">Home Visit</span> • 👨‍🏫 <span x-text="item.tutor">Kak Alya Rosaan, S.T.</span>
+                            ⏰ <span x-text="item.time">18:00 - 19:30 WITA</span> • 🏠 <span x-text="item.method">Tutor datang ke rumah</span> • 👨‍🏫 <span x-text="item.tutor">Kak Alya Rosaan, S.T.</span>
                         </p>
                     </div>
                 </div>

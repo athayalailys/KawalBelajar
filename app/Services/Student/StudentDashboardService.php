@@ -25,6 +25,12 @@ class StudentDashboardService
             ->whereIn('session_id', $sessions->pluck('session_id'))
             ->pluck('session_id')
             ->all();
+        $postTestSessionIds = EvaluationScore::query()
+            ->where('student_id', $studentId)
+            ->whereNotNull('posttest_score')
+            ->whereIn('session_id', $sessions->pluck('session_id'))
+            ->pluck('session_id')
+            ->all();
         $upcoming = $sessions
             ->filter(fn (LearningSession $session) => $this->scheduledAt($session)?->greaterThanOrEqualTo($now))
             ->sortBy(fn (LearningSession $session) => $this->scheduledAt($session)?->timestamp ?? PHP_INT_MAX)
@@ -58,12 +64,20 @@ class StudentDashboardService
         );
 
         $agenda = $weeklyAgenda->map(fn (LearningSession $session) =>
-            $this->sessionPayload($session, in_array($session->session_id, $unlockedSessionIds, true))
+            $this->sessionPayload(
+                $session,
+                in_array($session->session_id, $unlockedSessionIds, true),
+                in_array($session->session_id, $postTestSessionIds, true),
+            )
         )->values();
 
         return [
             'has_active_session' => $hasActiveSession,
-            'upcoming_session' => $upcoming ? $this->sessionPayload($upcoming, in_array($upcoming->session_id, $unlockedSessionIds, true)) : null,
+            'upcoming_session' => $upcoming ? $this->sessionPayload(
+                $upcoming,
+                in_array($upcoming->session_id, $unlockedSessionIds, true),
+                in_array($upcoming->session_id, $postTestSessionIds, true),
+            ) : null,
             'squad_referral' => $squad ? [
                 'squad_code' => $squad->squad_code,
                 'status' => $squad->status,
@@ -81,17 +95,23 @@ class StudentDashboardService
         ];
     }
 
-    private function sessionPayload(LearningSession $session, bool $preTestSubmitted): array
+    private function sessionPayload(LearningSession $session, bool $preTestSubmitted, bool $postTestSubmitted): array
     {
         $session->loadMissing(['schedule.teacher.user', 'material', 'order.package']);
         $scheduledAt = $this->scheduledAt($session);
+        $hasStarted = $session->hasStarted();
+        $isLocked = !$hasStarted || !$preTestSubmitted;
 
         return [
             'session_id' => $session->session_id,
             'scheduled_at' => $scheduledAt?->toISOString(),
             'duration_minutes' => $session->duration_minutes,
-            'status' => $session->status ?? $session->session_status,
-            'is_locked' => !$preTestSubmitted,
+            'status' => $session->session_status ?? $session->status,
+            'is_started' => $hasStarted,
+            'can_start_exam' => $hasStarted && !$preTestSubmitted,
+            'can_take_post_test' => $hasStarted && $preTestSubmitted && !$postTestSubmitted,
+            'is_locked' => $isLocked,
+            'gate_reason' => !$hasStarted ? 'not_started' : (!$preTestSubmitted ? 'pretest_required' : null),
             'teacher_name' => $session->schedule?->teacher?->user?->full_name,
             'package_name' => $session->order?->package?->package_name,
             'material' => $session->material ? [

@@ -16,7 +16,8 @@ class ParentModeController extends Controller
         $validated = $request->validate(['pin' => ['required', 'digits:6']]);
         $student = $request->user()?->student;
 
-        abort_unless($student && $student->education_level !== 'UMUM', 403);
+        $educationLevel = strtoupper(trim((string) $student?->education_level));
+        abort_unless($student && in_array($educationLevel, ['SD', 'SMP', 'SMA'], true), 403);
 
         if (!$student->parent_pin_hash || !Hash::check($validated['pin'], $student->parent_pin_hash)) {
             return response()->json([

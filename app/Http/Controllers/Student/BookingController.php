@@ -181,7 +181,7 @@ class BookingController extends Controller
         });
 
         try {
-            $invoice = $this->xenditInvoiceService->createInvoice($created['order'], $request->user());
+            $invoice = $this->xenditInvoiceService->createInvoice($created['order'], $request->user(), $validated['payment_method'] ?? null);
             $created['order']->update([
                 'xendit_invoice_id' => $invoice['invoice_id'],
                 'xendit_payment_url' => $invoice['payment_url'],
@@ -233,8 +233,14 @@ class BookingController extends Controller
         return $student;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        return view('pages.student.booking-wizard');
+        $student = $request->user()?->student;
+
+        return view('pages.student.booking-wizard', [
+            'student' => $student,
+            'educationLevel' => $student?->education_level,
+            'studentAddress' => $student?->saved_address ?? $student?->address,
+        ]);
     }
 }

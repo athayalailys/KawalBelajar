@@ -19,27 +19,42 @@ class AttendanceController extends Controller
     ) {}
 
     public function navigation(string $sessionId): \Illuminate\Http\JsonResponse
-{
-    $session = \App\Models\LearningSession::where('session_id', $sessionId)->firstOrFail();
+    {
+        $session = LearningSession::query()
+            ->with('order')
+            ->where('session_id', $sessionId)
+            ->firstOrFail();
 
-    $googleMapsUrl = sprintf(
-        'https://www.google.com/maps/dir/?api=1&destination=%f,%f',
-        $session->latitude,
-        $session->longitude
-    );
+        $user = request()->user();
+        abort_unless($user, 403);
 
-    return response()->json([
-        'message' => 'Detail rute navigasi berhasil dimuat.',
-        'data' => [
-            'session_id' => $session->session_id,
-            'address' => $session->onsite_address,
-            'landmark' => $session->address_landmark,
-            'latitude' => (float) $session->latitude,
-            'longitude' => (float) $session->longitude,
-            'google_maps_url' => $googleMapsUrl,
-        ]
-    ], 200);
-}
+        $studentId = $user->student?->student_id;
+        $teacherId = $user->teacher?->teacher_id;
+        $isStudentOwner = $studentId !== null
+            && ($session->student_id === $studentId || $session->order?->student_id === $studentId);
+        $isAssignedTeacher = $teacherId !== null && $session->teacher_id === $teacherId;
+
+        abort_unless($isStudentOwner || $isAssignedTeacher, 403);
+
+        $googleMapsUrl = sprintf(
+            'https://www.google.com/maps/dir/?api=1&destination=%f,%f',
+            $session->latitude,
+            $session->longitude
+        );
+
+        return response()->json([
+            'message' => 'Detail rute navigasi berhasil dimuat.',
+            'data' => [
+                'session_id' => $session->session_id,
+                'address' => $session->onsite_address ?? $session->student_address,
+                'landmark' => $session->address_landmark,
+                'latitude' => (float) $session->latitude,
+                'longitude' => (float) $session->longitude,
+                'google_maps_url' => $googleMapsUrl,
+            ],
+        ], 200);
+    }
+
 
     public function clockIn(ClockInRequest $request): JsonResponse
     {

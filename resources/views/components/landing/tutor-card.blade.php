@@ -1,6 +1,6 @@
 @props([
     'name' => 'Nama Tutor',
-    'location' => 'Online / Home Visit',
+    'location' => 'Daring atau tatap muka di rumah',
     'subject' => 'Mata Pelajaran',
     'badge' => 'Terverifikasi',
     'rating' => 5.0,
