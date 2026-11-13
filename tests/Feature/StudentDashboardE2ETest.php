@@ -9,6 +9,8 @@ use App\Models\ModulePackage;
 use App\Models\Order;
 use App\Models\QuestionBank;
 use App\Models\Student;
+use App\Models\StudentAttendance;
+use App\Models\StudentModuleDownload;
 use App\Models\Teacher;
 use App\Models\TeacherAvailabilitySlot;
 use App\Models\TutorPackageRate;
@@ -18,6 +20,7 @@ use Database\Seeders\DashboardE2ESeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class StudentDashboardE2ETest extends TestCase
@@ -51,6 +54,43 @@ class StudentDashboardE2ETest extends TestCase
             ->assertJsonPath('data.has_active_session', true)
             ->assertJsonPath('data.upcoming_session.is_locked', true);
         $this->assertNull($response->json('data.upcoming_session.zoom_meeting_url'));
+    }
+
+    public function test_module_download_is_tracked_and_dashboard_returns_integer_count(): void
+    {
+        Storage::fake('public');
+        $studentUser = User::query()->where('email', 'siswaA@kawalbelajar.id')->firstOrFail();
+        $student = Student::query()->where('user_id', $studentUser->user_id)->firstOrFail();
+        $session = LearningSession::query()->where('student_id', $student->student_id)->firstOrFail();
+        $material = LearningMaterial::create([
+            'teacher_id' => $session->teacher_id,
+            'package_id' => $session->order->package_id,
+            'session_number' => 1,
+            'title' => 'Modul Uji Unduhan.pdf',
+            'material_type' => 'pdf',
+            'file_or_url' => 'learning-modules/modul-uji.pdf',
+            'created_at' => now(),
+        ]);
+        Storage::disk('public')->put($material->file_or_url, 'modul uji');
+        $session->update(['material_id' => $material->material_id]);
+        EvaluationScore::create([
+            'session_id' => $session->session_id,
+            'student_id' => $student->student_id,
+            'pretest_score' => 70,
+            'created_at' => now(),
+        ]);
+
+        $downloadUrl = route('student.materials.download', [
+            'sessionId' => $session->session_id,
+            'materialId' => $material->material_id,
+        ]);
+
+        $this->actingAs($studentUser)->get($downloadUrl)->assertOk();
+        $this->get($downloadUrl)->assertOk();
+
+        $this->assertDatabaseCount('student_module_downloads', 1);
+        $dashboard = $this->getJson('/api/student/dashboard')->assertOk();
+        $this->assertSame(1, $dashboard->json('data.analytics.modul_terunduh'));
     }
 
     public function test_pretest_submission_unlocks_session_room(): void
@@ -277,9 +317,42 @@ class StudentDashboardE2ETest extends TestCase
             'progress_percentage' => 100,
         ]);
 
+        $secondSession = LearningSession::create([
+            'order_id' => $order->order_id,
+            'student_id' => $student->student_id,
+            'teacher_id' => $teacher->teacher_id,
+            'session_number' => 2,
+            'scheduled_at' => now()->subDays(2),
+            'duration_minutes' => 60,
+            'learning_method' => 'online_zoom',
+            'session_status' => 'completed',
+            'status' => 'completed',
+        ]);
+        EvaluationScore::create([
+            'session_id' => $secondSession->session_id,
+            'student_id' => $student->student_id,
+            'pretest_score' => 50,
+            'posttest_score' => 70,
+            'teacher_notes' => 'Perlu latihan soal lanjutan.',
+            'created_at' => now()->subDays(2),
+        ]);
+        StudentAttendance::create([
+            'session_id' => $secondSession->session_id,
+            'student_id' => $student->student_id,
+            'attendance_time' => now()->subDays(2),
+            'status' => 'permission',
+        ]);
+
         $this->actingAs($studentUser)->postJson('/api/student/parent-mode/verify-pin', ['pin' => '123456'])
             ->assertOk()
             ->assertJsonPath('data.posttest_score', 100)
-            ->assertJsonPath('data.attendance_count', 1);
+            ->assertJsonPath('data.attendance_count', 2)
+            ->assertJsonPath('data.kpi.average_pretest', 25)
+            ->assertJsonPath('data.kpi.average_posttest', 85)
+            ->assertJsonPath('data.kpi.average_improvement', 60)
+            ->assertJsonPath('data.attendance_breakdown.hadir', 1)
+            ->assertJsonPath('data.attendance_breakdown.izin', 1)
+            ->assertJsonPath('data.session_history.1.teacher_notes', 'Perlu latihan soal lanjutan.')
+            ->assertJsonCount(2, 'data.session_history');
     }
 }

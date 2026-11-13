@@ -24,7 +24,7 @@
         <section data-step-panel="1" class="space-y-6">
             <div><h1 class="text-2xl font-extrabold sm:text-3xl">Langkah 1: Identitas Kelas &amp; Target Capaian</h1><p class="mt-2 text-sm text-slate-600">Tentukan jenjang, mata pelajaran, dan tujuan program. Materi serta soal dilengkapi setelah draf disimpan.</p></div>
             <fieldset><legend class="text-sm font-extrabold uppercase">Pilih jenjang mengajar</legend><p class="mt-1 text-xs text-slate-500">Pilihan mengikuti jenjang yang telah diverifikasi.</p><div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">@forelse ($approvedLevels as $level)<button type="button" data-grade-choice="{{ $level }}" aria-pressed="false" class="grade-choice rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left font-bold text-slate-900 transition hover:border-amber-400">{{ $level }}<span class="mt-1 block text-xs font-normal text-slate-500">Jenjang terverifikasi</span></button>@empty<p class="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Belum ada jenjang terverifikasi.</p>@endforelse</div></fieldset>
-            <label class="block text-sm font-extrabold">Mata pelajaran <span class="text-rose-600">*</span><input name="subject_name" required value="{{ old('subject_name') }}" maxlength="100" class="mt-2 w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-normal" placeholder="Contoh: Fisika"></label>
+            <fieldset><legend class="text-sm font-extrabold">Pilih mata pelajaran <span class="text-rose-600">*</span></legend><p class="mt-1 text-xs text-slate-500">Pilihan menyesuaikan jenjang yang Anda pilih.</p><input type="hidden" name="subject_name" id="subject-name" value="{{ old('subject_name') }}" required><div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">@php($subjectChoices = ['SD' => ['Tematik Terpadu SD', 'Matematika Dasar', 'Calistung', 'IPA SD', 'Bahasa Inggris Anak'], 'SMP' => ['Fisika', 'Matematika', 'Kimia', 'Biologi', 'Bahasa Inggris', 'UTBK SNBT'], 'SMA' => ['Fisika', 'Matematika', 'Kimia', 'Biologi', 'Bahasa Inggris', 'UTBK SNBT'], 'UMUM' => ['UI/UX Design', 'Web Coding', 'Bahasa Asing', 'Data Analytics']])@foreach ($subjectChoices as $subjectLevel => $subjects)@foreach ($subjects as $subject)<button type="button" data-subject-choice="{{ $subject }}" data-subject-level="{{ $subjectLevel }}" aria-pressed="false" class="subject-choice hidden rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-left text-sm font-bold hover:border-amber-400">{{ $subject }}</button>@endforeach @endforeach</div></fieldset>
             <label class="block text-sm font-extrabold">Nama program / judul topik <span class="text-rose-600">*</span><input name="package_name" required value="{{ old('package_name') }}" maxlength="255" class="mt-2 w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-normal" placeholder="Contoh: Pendalaman Hukum Newton"></label>
             <label class="block text-sm font-extrabold">Deskripsi &amp; target capaian materi <span class="text-rose-600">*</span><textarea name="target_learning" required rows="4" maxlength="3000" class="mt-2 w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-normal" placeholder="Jelaskan target belajar siswa">{{ old('target_learning') }}</textarea></label>
         </section>
@@ -92,7 +92,21 @@
     const setChoice = (selector, value, input) => {
         document.querySelectorAll(selector).forEach(button => { const active = button.dataset[input] === value; button.classList.toggle('border-slate-900',active); button.classList.toggle('border-slate-200',!active); button.classList.toggle('bg-amber-50',active); button.classList.toggle('bg-white',!active); button.setAttribute('aria-pressed', String(active)); });
     };
-    document.querySelectorAll('[data-grade-choice]').forEach(button => button.addEventListener('click', () => { grade.value = button.dataset.gradeChoice; setChoice('.grade-choice',grade.value,'gradeChoice'); }));
+    const subjectInput = document.getElementById('subject-name');
+    const subjectButtons = [...document.querySelectorAll('[data-subject-choice]')];
+    const showSubjects = (level) => {
+        subjectButtons.forEach(button => {
+            const visible = button.dataset.subjectLevel === level;
+            button.classList.toggle('hidden', !visible);
+            if (!visible && button.dataset.subjectChoice === subjectInput.value) subjectInput.value = '';
+        });
+        setChoice('.subject-choice', subjectInput.value, 'subjectChoice');
+    };
+    subjectButtons.forEach(button => button.addEventListener('click', () => {
+        subjectInput.value = button.dataset.subjectChoice;
+        setChoice('.subject-choice', subjectInput.value, 'subjectChoice');
+    }));
+    document.querySelectorAll('[data-grade-choice]').forEach(button => button.addEventListener('click', () => { grade.value = button.dataset.gradeChoice; setChoice('.grade-choice',grade.value,'gradeChoice'); showSubjects(grade.value); }));
     document.querySelectorAll('[data-method-choice]').forEach(button => button.addEventListener('click', () => { method.value = button.dataset.methodChoice; setChoice('.method-choice',method.value,'methodChoice'); document.getElementById('location-field').classList.toggle('hidden',method.value !== 'home_visit'); document.querySelectorAll('[data-availability-card]').forEach(card => { const allowed = card.dataset.method === 'all' || card.dataset.method === method.value; card.classList.toggle('hidden',!allowed); if (!allowed) card.querySelector('input').checked = false; }); document.getElementById('tariff-display').textContent = formatPrice(price()) + ' / sesi / siswa'; document.getElementById('package-estimate').textContent = 'Estimasi nilai paket per siswa: ' + formatPrice(packageTotal()); }));
     document.querySelectorAll('[data-package-choice]').forEach(button => button.addEventListener('click', () => { pkg.value = button.dataset.packageChoice; setChoice('.package-choice',pkg.value,'packageChoice'); document.getElementById('package-estimate').textContent = 'Estimasi nilai paket per siswa: ' + formatPrice(packageTotal()); }));
     document.getElementById('wizard-next').addEventListener('click', () => {
@@ -104,6 +118,7 @@
     });
     document.getElementById('wizard-back').addEventListener('click', () => { step--; render(); });
     const oldGrade = @json(old('grade_level')); if (oldGrade) document.querySelector(`[data-grade-choice="${CSS.escape(oldGrade)}"]`)?.click();
+    const oldSubject = @json(old('subject_name')); if (oldSubject) subjectButtons.find(button => button.dataset.subjectChoice === oldSubject && button.dataset.subjectLevel === grade.value)?.click();
     const oldMethod = @json(old('learning_method')); if (oldMethod) document.querySelector(`[data-method-choice="${oldMethod}"]`)?.click();
     const oldPackage = @json(old('package_type')); if (oldPackage) document.querySelector(`[data-package-choice="${oldPackage}"]`)?.click();
     else document.querySelector(`[data-package-choice="${pkg.value}"]`)?.click();

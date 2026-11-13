@@ -3,6 +3,8 @@
 namespace App\Services\Classroom;
 
 use App\Models\LearningSession;
+use App\Models\TeacherWorkLog;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class AttendanceService
@@ -10,7 +12,7 @@ class AttendanceService
     public function clockIn(string $sessionId, string $teacherId, ?float $latitude = null, ?float $longitude = null): LearningSession
     {
         return DB::transaction(function () use ($sessionId, $teacherId, $latitude, $longitude) {
-            $session = LearningSession::where('session_id', $sessionId)
+            $session = LearningSession::with('order')->where('session_id', $sessionId)
                 ->where('teacher_id', $teacherId)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -36,7 +38,7 @@ class AttendanceService
     public function clockOut(string $sessionId, string $teacherId, ?float $latitude = null, ?float $longitude = null): LearningSession
     {
         return DB::transaction(function () use ($sessionId, $teacherId, $latitude, $longitude) {
-            $session = LearningSession::where('session_id', $sessionId)
+            $session = LearningSession::with('order')->where('session_id', $sessionId)
                 ->where('teacher_id', $teacherId)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -58,6 +60,27 @@ class AttendanceService
                 'teacher_clock_out_latitude' => $latitude,
                 'teacher_clock_out_longitude' => $longitude,
             ]);
+
+            $clockInAt = $session->teacher_clock_in ?? $session->absensi_masuk_guru;
+            $elapsedMinutes = $clockInAt
+                ? max(0, (int) floor(($now->getTimestamp() - Carbon::parse($clockInAt)->getTimestamp()) / 60))
+                : 0;
+            $durationMinutes = $elapsedMinutes > 0
+                ? $elapsedMinutes
+                : max(0, (int) ($session->duration_minutes ?? 0));
+            $grossAmount = (float) ($session->order?->total_amount ?? $session->order?->personal_amount ?? 0);
+
+            TeacherWorkLog::updateOrCreate(
+                ['session_id' => $session->session_id],
+                [
+                    'teacher_id' => $session->teacher_id,
+                    'duration_minutes' => $durationMinutes,
+                    'gross_session_amount' => $grossAmount,
+                    'teacher_earnings' => round($grossAmount * 0.25, 2),
+                    'payroll_status' => 'pending',
+                    'created_at' => $now,
+                ],
+            );
 
             return $session;
         });

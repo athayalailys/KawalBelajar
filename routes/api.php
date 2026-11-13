@@ -31,6 +31,7 @@ Route::prefix('student')->name('api.student.')->group(function () {
         Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
         Route::post('/parent-mode/verify-pin', [ParentModeController::class, 'verifyPin'])->name('parent-mode.verify-pin');
+        Route::get('/parent-mode/report', [ParentModeController::class, 'report'])->name('parent-mode.report');
     });
 });
 

@@ -97,6 +97,14 @@
                 </div>
             </section>
 
+            @if ($session->material)
+                <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h2 class="font-bold text-slate-900">Modul pembelajaran</h2>
+                    <p class="mt-1 text-sm text-slate-600">{{ $session->material->title }}</p>
+                    <a x-show="room && !room.is_locked" x-cloak href="{{ route('student.materials.download', ['sessionId' => $session->session_id, 'materialId' => $session->material->material_id]) }}" class="mt-4 inline-flex rounded-xl border-2 border-slate-900 bg-amber-300 px-5 py-3 text-sm font-extrabold text-slate-900 hover:bg-amber-200">Unduh modul</a>
+                </section>
+            @endif
+
             <section id="classroom-exam-panel" x-show="exam" x-cloak class="scroll-mt-6 space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
                 <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
                     <div>

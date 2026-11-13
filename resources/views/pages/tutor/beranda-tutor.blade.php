@@ -26,6 +26,28 @@
                     <div role="status" class="rounded-xl border border-green-200 bg-green-50 px-5 py-3 text-sm font-semibold text-green-800">{{ session('status') }}</div>
                 @endif
 
+                <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6" aria-labelledby="level-request-title">
+                    <h2 id="level-request-title" class="text-lg font-extrabold text-slate-900">Ajukan kenaikan jenjang mengajar</h2>
+                    <p class="mt-1 text-sm text-slate-600">Pilih jenjang yang ingin diajukan dan lampirkan sertifikat dalam format PDF. Admin akan meninjau pengajuan Anda.</p>
+                    <form method="POST" action="{{ route('tutor.level-requests.store') }}" enctype="multipart/form-data" class="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                        @csrf
+                        <label class="text-sm font-semibold text-slate-700">Jenjang tujuan
+                            <select name="requested_level" required class="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5">
+                                <option value="">Pilih jenjang</option>
+                                @foreach (['SD', 'SMP', 'SMA', 'UMUM'] as $level)
+                                    <option value="{{ $level }}" @selected(old('requested_level') === $level)>{{ $level }}</option>
+                                @endforeach
+                            </select>
+                            @error('requested_level')<span class="mt-1 block text-xs text-rose-700">{{ $message }}</span>@enderror
+                        </label>
+                        <label class="text-sm font-semibold text-slate-700">Sertifikat PDF (maks. 10 MB)
+                            <input type="file" name="certificate_file" accept="application/pdf,.pdf" required class="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+                            @error('certificate_file')<span class="mt-1 block text-xs text-rose-700">{{ $message }}</span>@enderror
+                        </label>
+                        <button type="submit" class="rounded-xl border-2 border-slate-900 bg-amber-400 px-5 py-2.5 text-sm font-extrabold text-slate-900 hover:bg-amber-300">Kirim pengajuan</button>
+                    </form>
+                </section>
+
                 <section class="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-8" aria-labelledby="welcome-title">
                     <div class="absolute -right-4 bottom-0 h-28 w-28 rounded-full bg-cyan-50"></div>
                     <div class="relative flex flex-wrap items-center justify-between gap-5">

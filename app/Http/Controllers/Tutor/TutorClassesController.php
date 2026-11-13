@@ -106,6 +106,17 @@ class TutorClassesController extends Controller
             return back()->withInput()->withErrors(['availability_slot_ids' => 'Pastikan semua slot aktif dan cocok dengan moda belajar yang dipilih.']);
         }
 
+        $slotUsedByAnotherClass = DB::table('module_package_availability_slots as package_slots')
+            ->join('module_packages as packages', 'packages.package_id', '=', 'package_slots.package_id')
+            ->where('packages.teacher_id', $tutor->teacher_id)
+            ->whereIn('package_slots.slot_id', $validated['availability_slot_ids'])
+            ->exists();
+        if ($slotUsedByAnotherClass) {
+            return back()->withInput()->withErrors([
+                'availability_slot_ids' => 'Slot jam tersebut sudah terpakai di kelas lain. Pilih slot berbeda.',
+            ]);
+        }
+
         $tariff = MasterTariff::query()
             ->with('package')
             ->where(function ($query) use ($tutor) {

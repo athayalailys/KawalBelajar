@@ -74,13 +74,18 @@ class TutorAvailabilityController extends Controller
         $data = $request->validate([
             'day_of_week' => ['required', Rule::in(array_keys(self::DAYS))],
             'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
+            'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
         ]);
-        $start = \Illuminate\Support\Carbon::createFromFormat('H:i', $data['start_time']);
-        $end = \Illuminate\Support\Carbon::createFromFormat('H:i', $data['end_time']);
-        if ($start->diffInMinutes($end) !== 60) {
+        $start = \Illuminate\Support\Carbon::createFromFormat('!H:i', $data['start_time']);
+        $end = filled($data['end_time'] ?? null)
+            ? \Illuminate\Support\Carbon::createFromFormat('!H:i', $data['end_time'])
+            : $start->copy()->addHour();
+        $durationMinutes = (int) (($end->getTimestamp() - $start->getTimestamp()) / 60);
+        if ($durationMinutes !== 60) {
             return back()->withInput()->withErrors(['end_time' => 'Durasi setiap slot Master Availability harus 60 menit.']);
         }
+        $data['start_time'] = $start->format('H:i:s');
+        $data['end_time'] = $end->format('H:i:s');
 
         $slot = DB::transaction(function () use ($teacher, $data) {
             Teacher::query()->whereKey($teacher->teacher_id)->lockForUpdate()->firstOrFail();

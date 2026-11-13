@@ -6,6 +6,7 @@ use App\Models\LearningSession;
 use App\Models\EvaluationScore;
 use App\Models\Order;
 use App\Models\StudentAttendance;
+use App\Models\StudentModuleDownload;
 use Illuminate\Support\Carbon;
 
 class StudentDashboardService
@@ -87,7 +88,7 @@ class StudentDashboardService
             'analytics' => [
                 'attendance_percentage' => $attendanceTotal > 0 ? round(($attendancePresent / $attendanceTotal) * 100, 2) : 0,
                 'avg_post_test' => $postTestAverage !== null ? round((float) $postTestAverage, 2) : null,
-                'modul_terunduh' => null,
+                'modul_terunduh' => (int) StudentModuleDownload::query()->where('student_id', $studentId)->distinct('material_id')->count('material_id'),
                 'kuis_selesai' => $completedQuizzes,
             ],
             'weekly_agenda' => $agenda,

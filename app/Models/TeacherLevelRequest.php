@@ -17,7 +17,7 @@ class TeacherLevelRequest extends Model
     protected $keyType = 'string';
     public $timestamps = false;
 
-    protected $fillable = ['request_id', 'teacher_id', 'requested_level', 'supporting_document_id', 'request_status', 'rejection_reason', 'reviewed_by_admin_id', 'reviewed_at', 'created_at'];
+    protected $fillable = ['request_id', 'teacher_id', 'requested_level', 'supporting_document_id', 'supporting_document_path', 'request_status', 'rejection_reason', 'reviewed_by_admin_id', 'reviewed_at', 'created_at'];
 
     protected function casts(): array
     {

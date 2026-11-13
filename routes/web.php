@@ -9,11 +9,15 @@ use App\Http\Controllers\Tutor\TutorLandingController;
 use App\Http\Controllers\Student\StudentDashboardController; // Controller untuk dashboard siswa
 use App\Http\Controllers\Student\BookingController;
 use App\Http\Controllers\Student\ClassroomPageController;
+use App\Http\Controllers\Student\ModuleDownloadController;
 use App\Http\Controllers\Tutor\TutorDashboardController;
 use App\Http\Controllers\Tutor\TutorClassDetailsController;
 use App\Http\Controllers\Tutor\TutorClassesController;
 use App\Http\Controllers\Tutor\TutorTeachingRoomController;
 use App\Http\Controllers\Tutor\TutorAvailabilityController;
+use App\Http\Controllers\Tutor\TutorLevelRequestController;
+use App\Http\Controllers\Tutor\TutorSessionMeetingLinkController;
+use App\Http\Controllers\Tutor\PayrollController;
 use App\Http\Controllers\Tutor\TutorClassRosterController;
 use App\Http\Controllers\Tutor\TutorClassMaterialsController;
 use Illuminate\Http\Request; // Class Request untuk membaca informasi permintaan pengguna   
@@ -94,6 +98,7 @@ Route::middleware(['auth', 'active-account', 'student-account'])
         Route::get('/booking', [BookingController::class, 'index'])->name('booking');
         Route::get('/schedule', fn () => view('pages.student.schedule'))->name('schedule');
         Route::get('/classroom', [ClassroomPageController::class, 'index'])->name('classroom');
+        Route::get('/classroom/session/{sessionId}/materials/{materialId}/download', [ModuleDownloadController::class, 'download'])->name('materials.download');
         Route::get('/report', fn () => view('pages.student.report'))->name('report');
         Route::get('/parent', function (Request $request) {
             $educationLevel = strtoupper(trim((string) $request->user()?->student?->education_level));
@@ -122,6 +127,9 @@ Route::middleware(['auth', 'active-account'])
     ->group(function () {
         Route::get('/dashboard', [TutorDashboardController::class, 'show'])
             ->name('dashboard');
+        Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll');
+        Route::post('/level-requests', [TutorLevelRequestController::class, 'store'])
+            ->name('level-requests.store');
         Route::get('/classes', [TutorClassesController::class, 'index'])
             ->name('classes');
         Route::get('/classes/create', [TutorClassesController::class, 'create'])
@@ -165,6 +173,8 @@ Route::middleware(['auth', 'active-account'])
             ->name('sessions.complete');
         Route::post('/sessions/{sessionId}/evaluation', [TutorClassDetailsController::class, 'saveEvaluation'])
             ->name('sessions.evaluation.save');
+        Route::patch('/sessions/{sessionId}/meeting-link', [TutorSessionMeetingLinkController::class, 'update'])
+            ->name('sessions.meeting-link');
     });
 
 // 9. ADMIN: PENGELOLAAN DAN PENINJAUAN TUTOR

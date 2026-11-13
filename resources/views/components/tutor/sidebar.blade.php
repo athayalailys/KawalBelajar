@@ -21,8 +21,8 @@
                     <span class="flex h-7 w-7 items-center justify-center text-base" aria-hidden="true">{{ $item['icon'] }}</span><span>{{ $item['label'] }}</span>
                 </a>
             @endforeach
-            @if (Route::has('tutor.earnings'))
-                <a href="{{ route('tutor.earnings') }}" @if (request()->routeIs('tutor.earnings*')) aria-current="page" @endif class="flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm {{ request()->routeIs('tutor.earnings*') ? 'border border-amber-200 bg-amber-50 font-bold text-slate-900' : 'border border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}"><span class="flex h-7 w-7 items-center justify-center" aria-hidden="true">▥</span><span>Rekap Gaji &amp; Payroll</span></a>
+            @if (Route::has('tutor.payroll'))
+                <a href="{{ route('tutor.payroll') }}" @if (request()->routeIs('tutor.payroll')) aria-current="page" @endif class="flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm {{ request()->routeIs('tutor.payroll') ? 'border border-amber-200 bg-amber-50 font-bold text-slate-900' : 'border border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}"><span class="flex h-7 w-7 items-center justify-center" aria-hidden="true">▥</span><span>Rekap Gaji &amp; Payroll</span></a>
             @else
                 <span class="flex cursor-not-allowed items-center gap-3 rounded-xl px-3.5 py-3 text-sm text-slate-400" title="Halaman payroll belum tersedia"><span class="flex h-7 w-7 items-center justify-center" aria-hidden="true">▥</span><span>Rekap Gaji &amp; Payroll</span></span>
             @endif
