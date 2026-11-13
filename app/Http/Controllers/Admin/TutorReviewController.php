@@ -122,6 +122,7 @@ class TutorReviewController extends Controller
             $teacher->update([
                 'cv_status' => 'approved',
                 'approved_levels' => $approved,
+                'verified_levels' => $approved,
                 'teacher_level' => implode(', ', $approved),
                 'review_note' => null,
             ]);

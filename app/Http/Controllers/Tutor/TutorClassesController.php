@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MasterTariff;
 use App\Models\ModulePackage;
 use App\Models\Squad;
+use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TutorPackageRate;
 use Illuminate\Http\RedirectResponse;
@@ -46,7 +47,9 @@ class TutorClassesController extends Controller
             })
             ->get()
             ->mapWithKeys(function (MasterTariff $tariff) {
-                $grade = $tariff->grade_level ?? $tariff->package?->grade_level;
+                $grade = in_array(strtoupper((string) $tariff->grade_level), ['SD', 'SMP', 'SMA', 'UMUM'], true)
+                    ? $tariff->grade_level
+                    : $tariff->package?->grade_level;
                 $method = $tariff->learning_method ?? $tariff->method ?? $tariff->package?->learning_method;
                 $rate = $tariff->category_rate ?? $tariff->base_rate;
 
@@ -58,6 +61,7 @@ class TutorClassesController extends Controller
         return view('pages.tutor.create-class', [
             'tutor' => $tutor,
             'approvedLevels' => $tutor->approved_levels ?? $tutor->verified_levels ?? [],
+            'subjectsByLevel' => $this->subjectOptions(),
             'defaultLocation' => $tutor->default_location,
             'tariffs' => $tariffs,
             'days' => ['Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu', 'Sunday' => 'Minggu'],
@@ -90,6 +94,11 @@ class TutorClassesController extends Controller
                     ->where('is_available', true)),
             ],
         ]);
+
+        $configuredSubjects = Subject::query()->where('grade_level', $validated['grade_level'])->get();
+        if ($configuredSubjects->isNotEmpty() && ! $configuredSubjects->contains(fn (Subject $subject) => $subject->is_active && $subject->name === $validated['subject_name'])) {
+            return back()->withInput()->withErrors(['subject_name' => 'Mata pelajaran ini tidak aktif untuk jenjang yang dipilih.']);
+        }
 
         $maximumCapacity = $validated['learning_method'] === 'online_zoom' ? 20 : 5;
         if ($validated['target_capacity'] > $maximumCapacity) {
@@ -124,7 +133,9 @@ class TutorClassesController extends Controller
             })
             ->get()
             ->first(function (MasterTariff $candidate) use ($validated) {
-                $grade = $candidate->grade_level ?? $candidate->package?->grade_level;
+                $grade = in_array(strtoupper((string) $candidate->grade_level), ['SD', 'SMP', 'SMA', 'UMUM'], true)
+                    ? $candidate->grade_level
+                    : $candidate->package?->grade_level;
                 $method = $candidate->learning_method ?? $candidate->method ?? $candidate->package?->learning_method;
                 return strtoupper((string) $grade) === strtoupper($validated['grade_level'])
                     && $method === $validated['learning_method']
@@ -259,5 +270,24 @@ class TutorClassesController extends Controller
             'masterSlots' => $tutor->availabilitySlots()->where('is_active', true)->where('is_available', true)->orderBy('day_of_week')->orderBy('start_time')->get(),
             'shareSquad' => $shareSquad,
         ];
+    }
+
+    private function subjectOptions(): array
+    {
+        $defaults = [
+            'SD' => ['Tematik Terpadu SD', 'Matematika Dasar', 'Calistung', 'IPA SD', 'Bahasa Inggris Anak'],
+            'SMP' => ['Fisika', 'Matematika', 'Kimia', 'Biologi', 'Bahasa Inggris', 'UTBK SNBT'],
+            'SMA' => ['Fisika', 'Matematika', 'Kimia', 'Biologi', 'Bahasa Inggris', 'UTBK SNBT'],
+            'UMUM' => ['UI/UX Design', 'Web Coding', 'Bahasa Asing', 'Data Analytics'],
+        ];
+
+        foreach ($defaults as $level => $names) {
+            $configured = Subject::query()->where('grade_level', $level)->get();
+            $defaults[$level] = $configured->isEmpty()
+                ? array_map(fn (string $name) => ['name' => $name, 'active' => true], $names)
+                : $configured->map(fn (Subject $subject) => ['name' => $subject->name, 'active' => $subject->is_active])->all();
+        }
+
+        return $defaults;
     }
 }

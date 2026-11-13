@@ -2,6 +2,11 @@
 
 use App\Http\Controllers\LandingPageController; // Controller untuk halaman utama / landing page
 use App\Http\Controllers\Admin\TutorReviewController; // Controller untuk pengelolaan dan peninjauan tutor oleh admin
+use App\Http\Controllers\Admin\AdminPortalController;
+use App\Http\Controllers\Admin\TutorLevelReviewController;
+use App\Http\Controllers\Admin\TariffController;
+use App\Http\Controllers\Admin\SubjectController;
+use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Auth\TutorRegistrationController; // Controller untuk proses registrasi tutor
 use App\Http\Controllers\Auth\LoginController; // Controller untuk proses login pengguna
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -177,7 +182,28 @@ Route::middleware(['auth', 'active-account'])
             ->name('sessions.meeting-link');
     });
 
-// 9. ADMIN: PENGELOLAAN DAN PENINJAUAN TUTOR
+// Portal dan pengelolaan Admin
+Route::middleware(['auth', 'active-account', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [AdminPortalController::class, 'dashboard'])->name('dashboard');
+    Route::get('/tutors', [AdminPortalController::class, 'tutors'])->name('tutors');
+    Route::get('/tariffs', [AdminPortalController::class, 'tariffs'])->name('tariffs');
+    Route::get('/subjects', [AdminPortalController::class, 'subjects'])->name('subjects');
+    Route::post('/subjects', [SubjectController::class, 'store'])->name('subjects.store');
+    Route::patch('/subjects/{id}', [SubjectController::class, 'update'])->name('subjects.update');
+    Route::post('/subjects/{id}/toggle', [SubjectController::class, 'toggle'])->name('subjects.toggle');
+    Route::get('/finance', [AdminPortalController::class, 'finance'])->name('finance');
+});
+
+// Admin API: peninjauan tutor, jenjang, tarif, dan pencairan payroll
+Route::middleware(['auth', 'active-account', 'admin'])->prefix('admin/api')->group(function () {
+    Route::get('/level-requests', [TutorLevelReviewController::class, 'index'])->name('admin.level-requests.index');
+    Route::post('/level-requests/{id}/approve', [TutorLevelReviewController::class, 'approve'])->name('admin.level-requests.approve');
+    Route::post('/level-requests/{id}/reject', [TutorLevelReviewController::class, 'reject'])->name('admin.level-requests.reject');
+    Route::put('/tariffs', [TariffController::class, 'update'])->name('admin.tariffs.update');
+    Route::post('/finance/payroll/{logId}/paid', [FinanceController::class, 'markPaid'])->name('admin.finance.payroll.paid');
+});
+
+// Pengelolaan dan peninjauan tutor oleh Admin
 // Prefix URL: /admin/api/tutors
 // Prefix nama rute: admin.tutors.
 Route::middleware(['auth', 'active-account', 'admin'])
