@@ -73,7 +73,23 @@ class TutorAuthAndProfileTest extends TestCase
             'password' => 'password123',
             'user_role' => 'tutor',
         ])->assertRedirect()
-            ->assertSessionHasErrors(['email' => 'Akun belum aktif. Hubungi admin jika akun Anda seharusnya sudah diverifikasi.']);
+            ->assertSessionHasErrors(['email' => 'Akun Anda telah dibekukan sementara. Silakan hubungi Admin untuk proses klarifikasi.']);
+    }
+
+    public function test_active_tutor_login_redirects_to_tutor_dashboard(): void
+    {
+        User::factory()->create([
+            'email' => 'tutor.aktif@example.test',
+            'password_hash' => Hash::make('password123'),
+            'role' => 'teacher',
+            'is_active' => true,
+        ]);
+
+        $this->post('/login', [
+            'email' => 'tutor.aktif@example.test',
+            'password' => 'password123',
+            'user_role' => 'tutor',
+        ])->assertRedirect(route('tutor.dashboard'));
     }
 
     public function test_upgrade_001_exposes_tutor_level_request_submission_route(): void

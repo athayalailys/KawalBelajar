@@ -15,7 +15,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(DashboardE2ESeeder::class);
+        $this->call([
+            AdminSeeder::class,
+            DashboardE2ESeeder::class,
+        ]);
 
         $teacher = Teacher::query()
             ->whereHas('user', fn ($query) => $query->where('email', 'tutor@kawalbelajar.id'))

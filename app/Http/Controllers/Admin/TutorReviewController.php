@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Teacher;
+use App\Services\Admin\TutorVerificationService;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,9 +14,19 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Mail\TutorRejectedMail;
+use App\Mail\TutorApprovedMail;
 
 class TutorReviewController extends Controller
 {
+    protected TutorVerificationService $verificationService;
+
+    public function __construct(TutorVerificationService $verificationService)
+    {
+        $this->verificationService = $verificationService;
+    }
+
     public function index(): JsonResponse
     {
         $applications = Teacher::with('user')->where('cv_status', 'pending')->latest()->get();
@@ -33,14 +45,52 @@ class TutorReviewController extends Controller
             'requested_levels' => $teacher->requested_levels,
             'default_location' => $teacher->default_location,
             'video_link' => $teacher->video_link,
-            'documents' => collect([
-                'cv' => $teacher->cv_url,
-                'identity' => $teacher->identity_document_url,
-                'transcript' => $teacher->transcript_url,
-                'certificate' => $teacher->certificate_url,
-            ])->map(fn ($path) => $path ? Storage::disk('public')->url($path) : null),
+            'documents' => [
+                'cv' => $teacher->cv_url ? route('admin.tutors.document', ['teacher' => $teacher->teacher_id, 'type' => 'cv']) : null,
+                'identity' => $teacher->identity_document_url ? route('admin.tutors.document', ['teacher' => $teacher->teacher_id, 'type' => 'identity']) : null,
+                'transcript' => $teacher->transcript_url ? route('admin.tutors.document', ['teacher' => $teacher->teacher_id, 'type' => 'transcript']) : null,
+                'certificate' => $teacher->certificate_url ? route('admin.tutors.document', ['teacher' => $teacher->teacher_id, 'type' => 'certificate']) : null,
+            ],
             'submitted_at' => $teacher->created_at,
         ]));
+    }
+
+    public function suspend(Request $request, Teacher $teacher): JsonResponse
+    {
+        $validated = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
+        abort_unless($teacher->cv_status === 'approved', 409, 'Hanya tutor yang telah disetujui yang dapat dibekukan.');
+
+        $user = $teacher->user;
+
+        $user->update([
+            'is_active' => false,
+            'suspension_reason' => $validated['reason']
+        ]);
+
+        if (config('session.driver') === 'database') {
+            DB::table('sessions')->where('user_id', $user->user_id)->delete();
+        }
+
+        return response()->json([
+            'message' => 'Akun tutor berhasil dibekukan dan sesi aktifnya telah dicabut.'
+        ]);
+    }
+
+    public function reinstate(Teacher $teacher): JsonResponse
+    {
+        abort_unless($teacher->cv_status === 'approved', 409, 'Hanya tutor yang telah disetujui yang dapat diaktifkan kembali.');
+        $teacher->user()->update(['is_active' => true, 'suspension_reason' => null]);
+
+        return response()->json(['message' => 'Akun tutor diaktifkan kembali.']);
+    }
+
+    public function downloadDocument(Teacher $teacher, string $type): StreamedResponse
+    {
+        $path = $this->verificationService->getDocumentPath($teacher, $type);
+        /** @var FilesystemAdapter $publicDisk */
+        $publicDisk = Storage::disk('public');
+
+        return $publicDisk->download($path);
     }
 
     public function approve(Request $request, Teacher $teacher): JsonResponse
@@ -82,17 +132,29 @@ class TutorReviewController extends Controller
                 'suspension_reason' => null,
             ]);
 
-            Mail::raw(
-                "Halo {$teacher->user->full_name},\n\nBerkas Anda telah disetujui. Jenjang yang disetujui: ".implode(', ', $approved).".\n\nUsername: {$username}\nPassword sementara: {$password}\n\nSegera masuk dan ganti password Anda.",
-                function ($message) use ($teacher) {
-                    $message->to($teacher->user->email)->subject('Akun tutor Kawal Belajar disetujui');
-                }
-            );
+            DB::table('teacher_level_verifications')
+                ->where('teacher_id', $teacher->teacher_id)
+                ->whereIn('jenjang', $approved)
+                ->update(['status_verifikasi' => 'approved', 'updated_at' => now()]);
 
-            return ['username' => $username];
+            return [
+                'username' => $username,
+                'password' => $password, // Tangkap password untuk dikirim ke email
+                'approvedLevels' => $approved,
+            ];
         });
 
-        return response()->json(['message' => 'Tutor disetujui dan kredensial dikirim melalui email.', ...$credentials]);
+        // PENGIRIMAN EMAIL DI LUAR DB TRANSACTION
+        Mail::to($teacher->user->email)->send(
+            new TutorApprovedMail(
+                $teacher,
+                $credentials['approvedLevels'],
+                $credentials['username'],
+                $credentials['password']
+            )
+        );
+
+        return response()->json(['message' => 'Tutor disetujui dan kredensial dikirim melalui email.', 'username' => $credentials['username']]);
     }
 
     public function reject(Request $request, Teacher $teacher): JsonResponse
@@ -103,25 +165,16 @@ class TutorReviewController extends Controller
         DB::transaction(function () use ($teacher, $validated) {
             $teacher->update(['cv_status' => 'rejected', 'review_note' => $validated['reason']]);
             $teacher->user()->update(['is_active' => false]);
+            DB::table('teacher_level_verifications')
+                ->where('teacher_id', $teacher->teacher_id)
+                ->update(['status_verifikasi' => 'rejected', 'updated_at' => now()]);
         });
 
-        return response()->json(['message' => 'Pengajuan tutor ditolak.']);
-    }
+        // PENGIRIMAN EMAIL PENOLAKAN
+        Mail::to($teacher->user->email)->send(
+            new TutorRejectedMail($teacher, $validated['reason'])
+        );
 
-    public function suspend(Request $request, Teacher $teacher): JsonResponse
-    {
-        $validated = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
-        abort_unless($teacher->cv_status === 'approved', 409, 'Hanya tutor yang telah disetujui yang dapat dibekukan.');
-        $teacher->user()->update(['is_active' => false, 'suspension_reason' => $validated['reason']]);
-
-        return response()->json(['message' => 'Akun tutor dibekukan. Sesi aktif akan ditolak pada permintaan berikutnya.']);
-    }
-
-    public function reinstate(Teacher $teacher): JsonResponse
-    {
-        abort_unless($teacher->cv_status === 'approved', 409, 'Hanya tutor yang telah disetujui yang dapat diaktifkan kembali.');
-        $teacher->user()->update(['is_active' => true, 'suspension_reason' => null]);
-
-        return response()->json(['message' => 'Akun tutor diaktifkan kembali.']);
+        return response()->json(['message' => 'Pengajuan tutor ditolak dan email instruksi telah dikirim.']);
     }
 }

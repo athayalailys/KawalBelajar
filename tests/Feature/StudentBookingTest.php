@@ -14,11 +14,13 @@ use App\Models\TutorPackageRate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\CreatesBookablePackages;
 use Tests\TestCase;
 
 class StudentBookingTest extends TestCase
 {
     use RefreshDatabase;
+    use CreatesBookablePackages;
 
     public function test_search_and_catalog_filter_by_level_subject_and_learning_method(): void
     {
@@ -210,6 +212,8 @@ class StudentBookingTest extends TestCase
             'learning_method' => 'home_visit',
             'is_active' => true,
         ]);
+
+        $this->makePackageReadyForEnrollment($teacher, $package);
 
         return [$studentUser, $teacher, $package, $slot];
     }

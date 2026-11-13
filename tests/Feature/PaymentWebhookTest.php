@@ -16,11 +16,13 @@ use App\Models\TutorPackageRate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\CreatesBookablePackages;
 use Tests\TestCase;
 
 class PaymentWebhookTest extends TestCase
 {
     use RefreshDatabase;
+    use CreatesBookablePackages;
 
     public function test_checkout_001_creates_pending_order_and_xendit_invoice(): void
     {
@@ -113,33 +115,7 @@ class PaymentWebhookTest extends TestCase
             'is_open' => true,
             'is_active' => true,
         ]);
-        foreach (range(1, 4) as $sessionNumber) {
-            TutorClassSessionContent::create([
-                'package_id' => $package->package_id,
-                'session_number' => $sessionNumber,
-                'topic' => "Topik {$sessionNumber}",
-                'learning_target' => "Target {$sessionNumber}",
-            ]);
-            LearningMaterial::create([
-                'teacher_id' => $teacher->teacher_id,
-                'package_id' => $package->package_id,
-                'session_number' => $sessionNumber,
-                'title' => "Materi {$sessionNumber}",
-                'material_type' => 'pdf',
-                'file_or_url' => "materials/webhook-{$sessionNumber}.pdf",
-            ]);
-            foreach (range(1, 3) as $questionNumber) {
-                QuestionBank::create([
-                    'teacher_id' => $teacher->teacher_id,
-                    'package_id' => $package->package_id,
-                    'session_number' => $sessionNumber,
-                    'exam_type' => 'pre_test',
-                    'category' => 'E2E',
-                    'question_text' => "Pertanyaan {$sessionNumber}-{$questionNumber}",
-                    'answer_key' => 'A',
-                ]);
-            }
-        }
+        $this->makePackageReadyForEnrollment($teacher, $package);
         TutorPackageRate::create([
             'package_id' => $package->package_id,
             'teacher_level' => 'junior',

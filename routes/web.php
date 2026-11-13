@@ -206,4 +206,7 @@ Route::middleware(['auth', 'active-account', 'admin'])
         Route::post('/{teacher}/reinstate', [TutorReviewController::class, 'reinstate'])
             ->name('reinstate');
 
+        Route::get('/{teacher}/document/{type}', [TutorReviewController::class, 'downloadDocument'])
+            ->name('document');
+
     });

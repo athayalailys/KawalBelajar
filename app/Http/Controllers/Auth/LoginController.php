@@ -47,8 +47,19 @@ class LoginController extends Controller
         }
 
         if (!$user->is_active) {
+            $teacher = $user->teacher;
+            $message = 'Akun Anda saat ini tidak aktif.';
+
+            if ($user->suspension_reason) {
+                $message = 'Akun Anda telah dibekukan sementara. Silakan hubungi Admin untuk proses klarifikasi.';
+            } elseif ($teacher?->cv_status === 'rejected') {
+                $message = 'Pendaftaran akun Anda ditolak. Silakan periksa email untuk melihat alasan dan instruksi perbaikan.';
+            } elseif (in_array($teacher?->cv_status, ['pending', 'under_review'], true)) {
+                $message = 'Akun Anda masih dalam tahap peninjauan. Kredensial akan dikirimkan setelah disetujui.';
+            }
+
             return back()->withErrors([
-                'email' => 'Akun belum aktif. Hubungi admin jika akun Anda seharusnya sudah diverifikasi.',
+                'email' => $message,
             ])->onlyInput('email', 'user_role');
         }
 
