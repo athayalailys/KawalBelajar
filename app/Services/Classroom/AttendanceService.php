@@ -53,8 +53,8 @@ class AttendanceService
             $session->update([
                 'absensi_keluar_guru' => $now,
                 'teacher_clock_out' => $now,
-                'status' => 'in_progress',
-                'session_status' => 'in_progress',
+                'status' => 'completed',
+                'session_status' => 'completed',
                 'teacher_clock_out_latitude' => $latitude,
                 'teacher_clock_out_longitude' => $longitude,
             ]);

@@ -17,11 +17,13 @@ use Database\Seeders\DashboardE2ESeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\CreatesBookablePackages;
 use Tests\TestCase;
 
 class StudentDashboardE2ETest extends TestCase
 {
     use RefreshDatabase;
+    use CreatesBookablePackages;
 
     protected function setUp(): void
     {
@@ -160,6 +162,7 @@ class StudentDashboardE2ETest extends TestCase
             'material_type' => 'pdf',
             'file_or_url' => 'materials/lifecycle.pdf',
         ]);
+        $this->makePackageReadyForEnrollment($teacher, $package);
         TutorPackageRate::create([
             'package_id' => $package->package_id,
             'teacher_level' => 'junior',

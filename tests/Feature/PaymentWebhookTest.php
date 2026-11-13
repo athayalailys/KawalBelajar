@@ -13,11 +13,13 @@ use App\Models\TutorPackageRate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\CreatesBookablePackages;
 use Tests\TestCase;
 
 class PaymentWebhookTest extends TestCase
 {
     use RefreshDatabase;
+    use CreatesBookablePackages;
 
     public function test_checkout_001_creates_pending_order_and_xendit_invoice(): void
     {
@@ -106,6 +108,7 @@ class PaymentWebhookTest extends TestCase
             'base_price' => 50000,
             'is_active' => true,
         ]);
+        $this->makePackageReadyForEnrollment($teacher, $package);
         TutorPackageRate::create([
             'package_id' => $package->package_id,
             'teacher_level' => 'junior',

@@ -31,7 +31,14 @@ class CatalogController extends Controller
         $packages->load('availabilitySlots');
 
         if ($packages->isEmpty()) {
-            return response()->json(['success' => true, 'data' => []]);
+            return response()->json([
+                'success' => true,
+                'filters' => [
+                    'education_level' => $filters['education_level'],
+                    'learning_method' => $filters['learning_method'],
+                ],
+                'data' => [],
+            ]);
         }
 
         $packageIds = $packages->pluck('package_id');

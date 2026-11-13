@@ -100,9 +100,10 @@ class ModulePackage extends Model
 
     public function plannedSessionCount(): int
     {
-        $count = (int) ($this->supported_session_packages ?? 1);
+        $counts = array_map('intval', explode(',', (string) ($this->supported_session_packages ?? '1')));
+        $supportedCounts = array_values(array_intersect($counts, [1, 4]));
 
-        return in_array($count, [1, 4], true) ? $count : 1;
+        return $supportedCounts ? max($supportedCounts) : 1;
     }
 
     public function incompleteSessionNumbers(): array
