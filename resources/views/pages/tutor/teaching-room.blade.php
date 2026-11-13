@@ -41,8 +41,8 @@
                         <h2 id="room-title" class="mt-3 text-xl font-extrabold sm:text-2xl">{{ $roomTitle }}</h2>
                         <p class="mt-2 text-xs text-slate-300">
                             @if ($roomSession)
-                                Sesi {{ $roomSession->session_number ?? 'â€”' }}: {{ $package->target_learning ?? $package->subject_name ?? $package->package_name }}
-                                @if ($roomSession->scheduled_at) Â· {{ $roomSession->scheduled_at->translatedFormat('l, j F Y H.i') }} WITA @endif
+                                Sesi {{ $roomSession->session_number ?? '—' }}: {{ $package->target_learning ?? $package->subject_name ?? $package->package_name }}
+                                @if ($roomSession->scheduled_at) · {{ $roomSession->scheduled_at->translatedFormat('l, j F Y H.i') }} WITA @endif
                             @else
                                 {{ $package->subject_name ?? 'Sesi belum dijadwalkan' }}
                             @endif
@@ -55,7 +55,7 @@
                         </a>
                     @else
                         <span class="inline-flex min-h-16 cursor-not-allowed items-center justify-center gap-3 rounded-2xl bg-slate-500 px-6 py-4 text-center text-sm font-bold text-white" title="Tautan Zoom belum tersedia untuk sesi ini">
-                            <span class="text-2xl" aria-hidden="true">â–£</span><span>Tautan Zoom<br>Belum Tersedia</span>
+                            <span class="text-2xl" aria-hidden="true">▣</span><span>Tautan Zoom<br>Belum Tersedia</span>
                         </span>
                     @endif
                 </section>
@@ -63,7 +63,7 @@
                 {{-- Section bawah: roster dan absensi, atau evaluasi siswa terpilih --}}
                 @if ($selectedStudent)
                     <section class="space-y-5" aria-label="Evaluasi siswa">
-                        <a href="{{ route('tutor.classroom.show', $package->package_id) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-cyan-800 hover:text-cyan-950">â† Kembali ke daftar siswa</a>
+                        <a href="{{ route('tutor.classroom.show', $package->package_id) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-cyan-800 hover:text-cyan-950">← Kembali ke daftar siswa</a>
 
                         <article class="rounded-[24px] border-2 border-[#57a5b4] bg-white/80 p-5 sm:p-7">
                             <div class="flex flex-wrap items-center justify-between gap-3">
@@ -88,7 +88,7 @@
                             <form method="POST" action="{{ route('tutor.classroom.evaluation', [$package->package_id, $selectedStudent->student_id]) }}" class="mt-5 space-y-4">
                                 @csrf
                                 <div class="grid gap-4 sm:grid-cols-2">
-                                    <label class="block text-sm font-semibold">Skor Post-Test Sesi Ini (0â€“100)
+                                    <label class="block text-sm font-semibold">Skor Post-Test Sesi Ini (0–100)
                                         <input name="posttest_score" type="number" min="0" max="100" value="{{ old('posttest_score', $selectedEvaluation?->posttest_score) }}" class="mt-2 w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-base font-bold outline-none focus:border-cyan-500" required>
                                     </label>
                                     <div class="block text-sm font-semibold">Presentase Peningkatan
@@ -104,7 +104,7 @@
                                 <label class="block text-sm font-semibold">Catatan Perkembangan
                                     <textarea name="teacher_notes" rows="3" maxlength="1000" class="mt-2 w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-normal outline-none focus:border-cyan-500" placeholder="Tuliskan perkembangan siswa selama sesi">{{ old('teacher_notes', $selectedEvaluation?->teacher_notes) }}</textarea>
                                 </label>
-                                <button type="submit" class="w-full rounded-xl border border-black bg-amber-400 px-5 py-3 text-sm font-extrabold text-[#102d3f] hover:bg-amber-300">Simpan dan Kirim Rapor Digital â†’</button>
+                                <button type="submit" class="w-full rounded-xl border border-black bg-amber-400 px-5 py-3 text-sm font-extrabold text-[#102d3f] hover:bg-amber-300">Simpan dan Kirim Rapor Digital →</button>
                             </form>
                         </article>
                     </section>
@@ -145,7 +145,7 @@
                                                     <span class="font-bold">{{ $student->user?->full_name ?? 'Nama siswa belum tersedia' }}</span>
                                                 </div>
                                             </td>
-                                            <td class="px-4 py-3"><span class="rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-800">{{ $student->education_level ?? 'â€”' }}</span></td>
+                                            <td class="px-4 py-3"><span class="rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-800">{{ $student->education_level ?? '—' }}</span></td>
                                             <td class="px-4 py-3">
                                                 <div class="flex items-center gap-2">
                                                     <span class="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100"><span class="block h-full rounded-full bg-cyan-600" style="width: {{ min(100, max(0, (int) $progress)) }}%"></span></span>
@@ -155,7 +155,7 @@
                                             <td class="px-4 py-3"><span class="rounded-full px-3 py-1 text-xs font-semibold {{ $attendance?->status === 'present' ? 'bg-green-50 text-green-700' : ($attendance?->status === 'absent' ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-600') }}">{{ $attendanceLabel }}</span></td>
                                             <td class="px-5 py-3">
                                                 <div class="flex flex-wrap items-center gap-2">
-                                                    <a href="{{ route('tutor.classroom.student', [$package->package_id, $studentId]) }}" title="Lihat evaluasi siswa" aria-label="Lihat evaluasi {{ $student->user?->full_name }}" class="rounded-lg p-2 text-cyan-800 hover:bg-cyan-50">â—‰</a>
+                                                    <a href="{{ route('tutor.classroom.student', [$package->package_id, $studentId]) }}" title="Lihat evaluasi siswa" aria-label="Lihat evaluasi {{ $student->user?->full_name }}" class="rounded-lg p-2 text-cyan-800 hover:bg-cyan-50">◎</a>
                                                     <form method="POST" action="{{ route('tutor.classroom.attendance', [$package->package_id, $studentId]) }}" class="flex gap-1">
                                                         @csrf
                                                         <button name="status" value="present" class="rounded-full bg-green-100 px-3 py-1.5 text-xs font-bold text-green-800 hover:bg-green-200">Hadir</button>
