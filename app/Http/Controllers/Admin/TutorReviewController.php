@@ -62,14 +62,20 @@ class TutorReviewController extends Controller
 
         $user = $teacher->user;
 
-        $user->update([
-            'is_active' => false,
-            'suspension_reason' => $validated['reason']
-        ]);
+        DB::transaction(function () use ($teacher, $user, $validated) {
+            $user->update([
+                'is_active' => false,
+                'suspension_reason' => $validated['reason'],
+            ]);
 
-        if (config('session.driver') === 'database') {
-            DB::table('sessions')->where('user_id', $user->user_id)->delete();
-        }
+            // Kelas tutor yang dibekukan tidak dipublikasikan kembali otomatis saat akun diaktifkan.
+            DB::table('module_packages')->where('teacher_id', $teacher->teacher_id)
+                ->update(['is_published' => false, 'is_open' => false]);
+
+            if (config('session.driver') === 'database') {
+                DB::table('sessions')->where('user_id', $user->user_id)->delete();
+            }
+        });
 
         return response()->json([
             'message' => 'Akun tutor berhasil dibekukan dan sesi aktifnya telah dicabut.'

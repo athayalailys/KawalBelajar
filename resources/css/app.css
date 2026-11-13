@@ -1,8 +1,6 @@
-@import 'tailwindcss';
-
-/* Impor Font Web (Cal Sans & Sans Body) */
 @import url('https://fonts.cdnfonts.com/css/cal-sans');
 @import url('https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

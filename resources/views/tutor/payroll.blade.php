@@ -3,7 +3,7 @@
         <section class="rounded-2xl border-2 border-slate-900 bg-white p-6 shadow-sm">
             <p class="text-xs font-extrabold uppercase tracking-wide text-teal-700">Transparansi pendapatan</p>
             <h1 class="mt-1 text-2xl font-extrabold text-slate-900">Rekap Gaji &amp; Payroll</h1>
-            <p class="mt-2 text-sm text-slate-600">Honor dihitung sebesar <strong>25% dari total kas sesi</strong> setelah sesi selesai dan Clock-Out tercatat.</p>
+            <p class="mt-2 text-sm text-slate-600">Honor tutor sebesar 25% dari total kas sesi, dihitung setelah sesi selesai dan Clock-Out tercatat.</p>
         </section>
 
         <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan payroll">
