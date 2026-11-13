@@ -9,6 +9,34 @@
 
 ## About Laravel
 
+## Menjalankan di komputer lokal
+
+Project ini memakai Laravel 12 dan PHP 8.2 atau lebih baru. Dari folder `KawalBelajar`, jalankan:
+
+```bash
+composer install
+copy .env.example .env
+php artisan key:generate
+php artisan migrate
+npm.cmd install
+npm.cmd run dev
+```
+
+Di terminal lain, jalankan `php artisan serve`, lalu buka alamat yang ditampilkan.
+
+Database lokal bawaan adalah SQLite, jadi Laragon tidak harus dinyalakan. Pastikan file `database/database.sqlite` ada (buat file kosong jika belum ada). Jika memakai MySQL dari Laragon, nyalakan service **MySQL** di Laragon, buat database `kawalbelajar`, lalu ubah `.env` menjadi:
+
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=kawalbelajar
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Setelah mengganti `.env`, jalankan `php artisan config:clear` dan `php artisan migrate`. Migration saat ini baru menyediakan tabel pengguna, tabel standar Laravel, serta tabel verifikasi tutor. Fitur lain yang memakai model `students`, `module_packages`, `orders`, dan tabel bisnis lain masih memerlukan migration/database dump dari pemilik project.
+
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
 - [Simple, fast routing engine](https://laravel.com/docs/routing).
