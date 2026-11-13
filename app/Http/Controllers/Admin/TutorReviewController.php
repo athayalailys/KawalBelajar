@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Teacher;
 use App\Services\Admin\TutorVerificationService;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -58,9 +59,21 @@ class TutorReviewController extends Controller
     {
         $validated = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
         abort_unless($teacher->cv_status === 'approved', 409, 'Hanya tutor yang telah disetujui yang dapat dibekukan.');
-        $teacher->user()->update(['is_active' => false, 'suspension_reason' => $validated['reason']]);
 
-        return response()->json(['message' => 'Akun tutor dibekukan. Sesi aktif akan ditolak pada permintaan berikutnya.']);
+        $user = $teacher->user;
+
+        $user->update([
+            'is_active' => false,
+            'suspension_reason' => $validated['reason']
+        ]);
+
+        if (config('session.driver') === 'database') {
+            DB::table('sessions')->where('user_id', $user->user_id)->delete();
+        }
+
+        return response()->json([
+            'message' => 'Akun tutor berhasil dibekukan dan sesi aktifnya telah dicabut.'
+        ]);
     }
 
     public function reinstate(Teacher $teacher): JsonResponse
@@ -74,8 +87,10 @@ class TutorReviewController extends Controller
     public function downloadDocument(Teacher $teacher, string $type): StreamedResponse
     {
         $path = $this->verificationService->getDocumentPath($teacher, $type);
+        /** @var FilesystemAdapter $publicDisk */
+        $publicDisk = Storage::disk('public');
 
-        return Storage::disk('public')->download($path);
+        return $publicDisk->download($path);
     }
 
     public function approve(Request $request, Teacher $teacher): JsonResponse
