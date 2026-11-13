@@ -63,7 +63,7 @@ class LoginController extends Controller
             return redirect()->route('admin.tutors.index');
         }
 
-        return redirect()->route('tutor.landing');
+        return redirect()->route('tutor.dashboard');
     }
 
     public function destroy(Request $request): RedirectResponse

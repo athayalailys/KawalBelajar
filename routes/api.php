@@ -25,10 +25,6 @@ Route::prefix('student')->name('api.student.')->group(function () {
     Route::get('/catalog', [CatalogController::class, 'index'])->name('catalog');
     Route::get('/catalog/subjects', [CatalogController::class, 'subjects'])->name('catalog.subjects');
 
-Route::get('/login', function () {
-    return view('pages.auth.login');
-    })->name('login');
-
     Route::middleware(['web', 'auth:web', 'active-account'])->group(function () {
         Route::get('/booking/tutor-slots/{teacherId}', [BookingController::class, 'getTutorSlots'])->name('booking.tutor-slots');
         Route::post('/booking/calculate', [BookingController::class, 'calculate'])->name('booking.calculate');
