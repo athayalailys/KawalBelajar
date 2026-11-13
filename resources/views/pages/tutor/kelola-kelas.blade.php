@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Manajemen Kelas - KawalBelajar</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-[#f3f8fa] font-sans text-[#102d3f] antialiased">
+<body class="bg-slate-100/70 font-sans text-slate-800 antialiased">
     @php
         $name = $tutor->user?->full_name ?? 'Tutor';
         $days = ['Monday' => 'Sen', 'Tuesday' => 'Sel', 'Wednesday' => 'Rab', 'Thursday' => 'Kam', 'Friday' => 'Jum', 'Saturday' => 'Sab', 'Sunday' => 'Min'];
@@ -18,24 +19,12 @@
                 ?? $masterSlots->first(fn ($slot) => in_array($slot->learning_method, [null, $class->learning_method], true));
         };
     @endphp
-    <div class="min-h-screen lg:grid lg:grid-cols-[286px_minmax(0,1fr)]">
-        <aside class="flex flex-col border-r border-[#102d3f] bg-white px-4 py-5 lg:sticky lg:top-0 lg:h-screen">
-            <div class="flex items-start justify-between border-b border-slate-200 pb-4">
-                <a href="{{ route('tutor.dashboard') }}" class="flex items-center gap-2.5"><span class="flex h-10 w-10 items-center justify-center rounded-2xl border-2 border-[#102d3f] bg-amber-300 text-xl"></span><span class="leading-tight"><b class="block text-lg">Kawal<span class="text-cyan-600">Belajar</span></b><small class="rounded bg-cyan-100 px-2 py-0.5 text-[9px] font-extrabold uppercase">Portal Tutor</small></span></a>
-                <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-[#102d3f]"></span>
-            </div>
-            <nav aria-label="Menu tutor" class="mt-4 space-y-1.5 text-[13px] font-semibold">
-                <a href="{{ route('tutor.dashboard') }}" class="block rounded-2xl px-3.5 py-3 hover:bg-slate-50"> &nbsp;Beranda Tutor</a>
-                <a href="{{ route('tutor.classes') }}" aria-current="page" class="flex items-center justify-between rounded-2xl bg-yellow-100 px-3.5 py-3"><span> &nbsp;Manajemen Kelas dan Siswa</span><span class="h-2 w-2 rounded-full bg-emerald-500"></span></a>
-                <a href="{{ route('tutor.class-details') }}" class="block rounded-2xl px-3.5 py-3 hover:bg-slate-50"> &nbsp;Sesi Mengajar / Cockpit</a>
-                <a href="{{ route('tutor.availability') }}" class="block rounded-2xl px-3.5 py-3 hover:bg-slate-50"> &nbsp;Master Availability</a>
-                @if (Route::has('tutor.earnings'))<a href="{{ route('tutor.earnings') }}" class="block rounded-2xl px-3.5 py-3 hover:bg-slate-50"> &nbsp;Rekap Gaji &amp; Payroll</a>@endif
-            </nav>
-            <div class="mt-auto border-t border-slate-200 pt-3"><div class="flex items-center gap-3 rounded-2xl border-2 border-[#102d3f] bg-slate-50 p-2.5 shadow-[2px_3px_0_#102d3f]"><span class="flex h-10 w-10 items-center justify-center rounded-xl border border-[#102d3f] bg-cyan-100 font-extrabold">{{ mb_strtoupper(collect(explode(' ', $name))->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) }}</span><span><b class="block text-xs">{{ $name }}</b><small class="text-[10px] text-slate-500">{{ $tutor->teacher_level ?? $tutor->focus_subject ?? 'Tutor' }}</small></span><span class="ml-auto h-2.5 w-2.5 rounded-full bg-emerald-500"></span></div></div>
-        </aside>
+    <div class="flex min-h-screen">
+        <x-tutor.sidebar />
 
-        <main class="min-w-0 px-5 sm:px-8 lg:px-10">
-            <header class="flex items-center justify-between py-5 text-xs sm:text-sm"><div class="text-slate-500"><a href="{{ route('tutor.dashboard') }}">Portal Tutor</a><span class="px-2"></span><b class="text-[#102d3f]">Manajemen Kelas</b></div><div class="flex items-center gap-4">@if (Route::has('logout'))<form method="POST" action="{{ route('logout') }}">@csrf<button class="font-semibold">Keluar</button></form>@endif<span class="relative flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[#102d3f] bg-white"><i class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-rose-500"></i></span></div></header>
+        <main class="min-w-0 px-5 sm:px-8 lg:px-10 flex-1">
+            <x-tutor.topbar title="Manajemen Kelas dan Siswa" />
+            <x-tutor.mobile-nav />
             <div class="space-y-6 pb-8">
                 @if (session('status'))<div role="status" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{{ session('status') }}</div>@endif
                 @if ($errors->any())<div role="alert" class="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first() }}</div>@endif

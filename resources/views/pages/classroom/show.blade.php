@@ -97,7 +97,7 @@
                 </div>
             </section>
 
-            <section x-show="exam" x-cloak class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+            <section id="classroom-exam-panel" x-show="exam" x-cloak class="scroll-mt-6 space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
                 <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
                     <div>
                         <p class="text-xs font-bold uppercase tracking-wide text-teal-700" x-text="examType === 'pre_test' ? 'Tes Awal Diagnostik' : 'Tes Akhir' "></p>

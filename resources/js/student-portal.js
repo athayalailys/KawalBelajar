@@ -648,7 +648,11 @@ const studentClassroom = () => ({
     },
 
     sessionUrl(sessionId, options = {}) {
-        const target = new URL(this.$el.dataset.classroomUrl, window.location.origin);
+        const classroomUrl = this.$el?.dataset?.classroomUrl;
+        const baseUrl = classroomUrl && classroomUrl !== 'undefined'
+            ? classroomUrl
+            : '/siswa/classroom';
+        const target = new URL(baseUrl, window.location.origin);
         target.searchParams.set('session_id', sessionId);
         if (options.examType) target.searchParams.set('exam_type', options.examType);
         return target.toString();
@@ -721,6 +725,7 @@ const studentClassroom = () => ({
         try {
             const result = await jsonRequest(url);
             this.exam = result.data;
+            this.$nextTick(() => document.getElementById('classroom-exam-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
             if (this.exam.already_submitted) {
                 this.notice = `Tes sudah dikumpulkan. Nilai: ${this.exam.score ?? '—'}.`;
             } else if (this.examType === 'pre_test') {

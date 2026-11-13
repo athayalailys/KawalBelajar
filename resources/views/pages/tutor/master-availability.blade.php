@@ -3,52 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Master Availability - KawalBelajar</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-[#f3f8fa] font-sans text-[#102d3f] antialiased">
+<body class="bg-slate-100/70 font-sans text-slate-800 antialiased">
     @php
         $name = $teacher->user?->full_name ?? 'Tutor';
         $slotsForDay = $slots->where('day_of_week', $selectedDay)->values();
     @endphp
-    <div class="min-h-screen lg:grid lg:grid-cols-[286px_minmax(0,1fr)]">
-        <aside class="flex flex-col border-r border-slate-200 bg-white px-4 py-5 lg:sticky lg:top-0 lg:h-screen">
-            <div class="flex items-start justify-between border-b border-slate-200 pb-4">
-                <a href="{{ route('tutor.dashboard') }}" class="flex items-center gap-2.5"><span class="flex h-10 w-10 items-center justify-center rounded-2xl border-2 border-[#102d3f] bg-amber-300 text-xl">🎓</span><span class="leading-tight"><b class="block text-lg">Kawal<span class="text-cyan-600">Belajar</span></b><small class="rounded bg-cyan-100 px-2 py-0.5 text-[9px] font-extrabold uppercase">Portal Tutor</small></span></a>
-                <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-[#102d3f]">◀</span>
-            </div>
-            <nav aria-label="Menu tutor" class="mt-4 space-y-1.5 text-[13px] font-semibold">
-                <a href="{{ route('tutor.dashboard') }}" class="block rounded-2xl px-3.5 py-3 hover:bg-slate-50">🏠 &nbsp;Beranda Tutor</a>
-                <a href="{{ route('tutor.classes') }}" class="block rounded-2xl px-3.5 py-3 hover:bg-slate-50">👥 &nbsp;Manajemen Kelas dan Siswa</a>
-                <a href="{{ route('tutor.class-details') }}" class="block rounded-2xl px-3.5 py-3 hover:bg-slate-50">⏱️ &nbsp;Sesi Mengajar / Cockpit</a>
-                <a href="{{ route('tutor.availability') }}" aria-current="page" class="flex items-center justify-between rounded-2xl bg-yellow-100 px-3.5 py-3"><span>🗓️ &nbsp;Master Availability</span><span class="h-2 w-2 rounded-full bg-emerald-500"></span></a>
-                @if (Route::has('tutor.earnings'))<a href="{{ route('tutor.earnings') }}" class="block rounded-2xl px-3.5 py-3 hover:bg-slate-50">💰 &nbsp;Rekap Gaji &amp; Payroll</a>@endif
-            </nav>
-            <div class="mt-auto border-t border-slate-200 pt-3"><div class="flex items-center gap-3 rounded-2xl border-2 border-[#102d3f] bg-slate-50 p-2.5 shadow-[2px_3px_0_#102d3f]"><span class="flex h-10 w-10 items-center justify-center rounded-xl border border-[#102d3f] bg-cyan-100 font-extrabold">{{ mb_strtoupper(collect(explode(' ', $name))->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) }}</span><span><b class="block text-xs">{{ $name }}</b><small class="text-[10px] text-slate-500">{{ $teacher->teacher_level ?? $teacher->focus_subject ?? 'Tutor' }}</small></span><span class="ml-auto h-2.5 w-2.5 rounded-full bg-emerald-500"></span></div></div>
-        </aside>
+    <div class="flex min-h-screen">
+        <x-tutor.sidebar />
 
-        <main class="min-w-0 px-5 sm:px-8 lg:px-10">
-            <header class="flex items-center justify-between py-5 text-xs sm:text-sm"><div class="text-slate-500"><a href="{{ route('tutor.dashboard') }}">Portal Tutor</a><span class="px-2">›</span><b class="text-[#102d3f]">Master Availability Pool</b></div><div class="flex items-center gap-4">@if (Route::has('logout'))<form method="POST" action="{{ route('logout') }}">@csrf<button class="font-semibold">Keluar</button></form>@endif<span class="rounded-xl border-2 border-[#102d3f] bg-white px-2 py-1 text-lg">♧</span></div></header>
+        <main class="min-w-0 px-5 sm:px-8 lg:px-10 flex-1">
+            <x-tutor.topbar title="Master Availability" />
+            <x-tutor.mobile-nav />
             <div class="space-y-6 pb-10">
                 @if (session('status'))<div role="status" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{{ session('status') }}</div>@endif
                 @if ($errors->any())<div role="alert" class="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first() }}</div>@endif
 
                 <section class="grid gap-5 rounded-[28px] border-2 border-sky-300 bg-white p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_335px] lg:items-center" aria-labelledby="availability-title">
                     <div><h1 id="availability-title" class="text-2xl font-extrabold tracking-tight sm:text-3xl">Master Availability Pool</h1><p class="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">Atur slot jam ketersediaan rutin mingguan Anda. Jadwal ini otomatis menjadi sumber ketersediaan untuk seluruh kelas yang Anda buka, bebas bentrok lintas mata pelajaran.</p></div>
-                    <div class="grid grid-cols-3 items-center rounded-2xl border-2 border-slate-700 bg-slate-100 p-3 text-center text-xs"><div><span class="block text-slate-600">Total Slot Master</span><b class="mt-1 block text-lg">{{ $activeSlotsCount }}</b><small>Sesi</small></div><div class="border-x border-slate-300 px-1"><span class="block rounded-xl border border-emerald-300 bg-emerald-50 p-2 font-bold text-emerald-800">✓ SIAP DIPAKAI<br><b class="text-base">{{ $availableSlotsCount }} Slot</b></span></div><div class="px-1"><span class="block rounded-xl border border-rose-300 bg-rose-50 p-2 font-bold text-rose-800">▣ TERISI KELAS<br><b class="text-base">{{ $bookedSlotsCount }} Slot</b></span></div></div>
+                    <div class="grid grid-cols-3 items-center rounded-2xl border-2 border-slate-700 bg-slate-100 p-3 text-center text-xs"><div><span class="block text-slate-600">Total Slot Master</span><b class="mt-1 block text-lg">{{ $activeSlotsCount }}</b><small>Sesi</small></div><div class="border-x border-slate-300 px-1"><span class="block rounded-xl border border-emerald-300 bg-emerald-50 p-2 font-bold text-emerald-800">âœ“ SIAP DIPAKAI<br><b class="text-base">{{ $availableSlotsCount }} Slot</b></span></div><div class="px-1"><span class="block rounded-xl border border-rose-300 bg-rose-50 p-2 font-bold text-rose-800">â–£ TERISI KELAS<br><b class="text-base">{{ $bookedSlotsCount }} Slot</b></span></div></div>
                 </section>
 
                 <section class="rounded-[26px] border-2 border-teal-700 bg-[#eff9fa] p-5 sm:p-6" aria-labelledby="add-slot-title">
-                    <h2 id="add-slot-title" class="flex items-center gap-2 text-base font-extrabold"><span class="rounded-lg bg-teal-700 px-2 py-1 text-white">＋</span> Tambah Slot Waktu Ketersediaan Baru</h2>
+                    <h2 id="add-slot-title" class="flex items-center gap-2 text-base font-extrabold"><span class="rounded-lg bg-teal-700 px-2 py-1 text-white">ï¼‹</span> Tambah Slot Waktu Ketersediaan Baru</h2>
                     <form method="POST" action="{{ route('tutor.availability.store') }}" class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[1.15fr_1fr_auto_1fr_auto] xl:items-end">
                         @csrf
                         <label class="text-[10px] font-bold uppercase tracking-wide text-slate-600">Pilih Hari Rutin<select name="day_of_week" required class="mt-1 block h-12 w-full rounded-xl border-2 border-[#102d3f] bg-white px-3 text-sm font-medium normal-case">@foreach ($days as $dayValue => $dayLabel)<option value="{{ $dayValue }}" @selected(old('day_of_week', $selectedDay) === $dayValue)>{{ $dayLabel }}</option>@endforeach</select></label>
                         <label class="text-[10px] font-bold uppercase tracking-wide text-slate-600">Jam Mulai<input type="time" name="start_time" value="{{ old('start_time', '18:00') }}" required class="mt-1 block h-12 w-full rounded-xl border-2 border-[#102d3f] bg-white px-3 text-sm font-medium normal-case"></label>
-                        <span class="hidden pb-3 text-2xl xl:block">→</span>
+                        <span class="hidden pb-3 text-2xl xl:block">â†’</span>
                         <label class="text-[10px] font-bold uppercase tracking-wide text-slate-600">Jam Selesai<input type="time" name="end_time" value="{{ old('end_time', '19:00') }}" required readonly class="mt-1 block h-12 w-full rounded-xl border-2 border-[#102d3f] bg-slate-50 px-3 text-sm font-medium normal-case"></label>
-                        <button class="h-12 rounded-xl border-2 border-[#102d3f] bg-amber-400 px-4 text-sm font-bold shadow-[2px_3px_0_#102d3f] hover:bg-amber-300">＋ Simpan Slot ke Master</button>
+                        <button class="h-12 rounded-xl border-2 border-[#102d3f] bg-amber-400 px-4 text-sm font-bold shadow-[2px_3px_0_#102d3f] hover:bg-amber-300">ï¼‹ Simpan Slot ke Master</button>
                     </form>
-                    <p class="mt-4 text-xs text-slate-600"><span class="font-bold text-cyan-700">ⓘ</span> Durasi slot mengikuti waktu yang Anda tentukan. Slot berlaku rutin mingguan untuk semua mata pelajaran; sistem menolak jadwal yang beririsan.</p>
+                    <p class="mt-4 text-xs text-slate-600"><span class="font-bold text-cyan-700">â“˜</span> Durasi slot mengikuti waktu yang Anda tentukan. Slot berlaku rutin mingguan untuk semua mata pelajaran; sistem menolak jadwal yang beririsan.</p>
                 </section>
 
                 <section aria-label="Pilih hari ketersediaan">
@@ -66,12 +55,12 @@
                         @forelse ($slotsForDay as $slot)
                             @php($isLocked = $slot->is_booked)
                             <article class="grid gap-4 rounded-2xl border {{ $isLocked ? 'border-slate-400 bg-slate-200/70' : ($slot->is_active ? 'border-[#102d3f] bg-white' : 'border-slate-300 bg-slate-100') }} p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                                <div class="flex min-w-0 items-center gap-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 {{ $isLocked ? 'border-slate-400 bg-slate-200' : 'border-[#102d3f] bg-cyan-50' }} text-xl">{{ $isLocked ? '🔒' : '◷' }}</span><div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><h3 class="font-extrabold {{ $slot->is_active ? '' : 'text-slate-500 line-through' }}">{{ $slot->day_label }}, {{ $slot->start_label }}–{{ $slot->end_label }} WITA</h3>@if ($isLocked)<span class="rounded-full border border-amber-400 bg-amber-100 px-2 py-1 text-[9px] font-extrabold uppercase text-amber-900">Terisi di kelas</span>@elseif ($slot->is_active)<span class="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-1 text-[9px] font-extrabold uppercase text-emerald-800">✓ Kosong &amp; siap dipakai</span>@else<span class="rounded-full bg-slate-200 px-2 py-1 text-[9px] font-extrabold uppercase text-slate-600">Nonaktif</span>@endif</div>
-                                    @if ($isLocked)<p class="mt-1 text-xs text-amber-800">Terikat dengan program: {{ $slot->usage->package_name ?? 'Pemesanan siswa' }}{{ $slot->usage->subject_name ? ' ('.$slot->usage->subject_name.($slot->usage->grade_level ? ' '.$slot->usage->grade_level : '').')' : '' }}</p>@else<p class="mt-1 text-xs text-slate-500">Slot rutin mingguan • Sumber jadwal semua program tutor</p>@endif</div></div>
+                                <div class="flex min-w-0 items-center gap-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 {{ $isLocked ? 'border-slate-400 bg-slate-200' : 'border-[#102d3f] bg-cyan-50' }} text-xl">{{ $isLocked ? 'ðŸ”’' : 'â—·' }}</span><div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><h3 class="font-extrabold {{ $slot->is_active ? '' : 'text-slate-500 line-through' }}">{{ $slot->day_label }}, {{ $slot->start_label }}â€“{{ $slot->end_label }} WITA</h3>@if ($isLocked)<span class="rounded-full border border-amber-400 bg-amber-100 px-2 py-1 text-[9px] font-extrabold uppercase text-amber-900">Terisi di kelas</span>@elseif ($slot->is_active)<span class="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-1 text-[9px] font-extrabold uppercase text-emerald-800">âœ“ Kosong &amp; siap dipakai</span>@else<span class="rounded-full bg-slate-200 px-2 py-1 text-[9px] font-extrabold uppercase text-slate-600">Nonaktif</span>@endif</div>
+                                    @if ($isLocked)<p class="mt-1 text-xs text-amber-800">Terikat dengan program: {{ $slot->usage->package_name ?? 'Pemesanan siswa' }}{{ $slot->usage->subject_name ? ' ('.$slot->usage->subject_name.($slot->usage->grade_level ? ' '.$slot->usage->grade_level : '').')' : '' }}</p>@else<p class="mt-1 text-xs text-slate-500">Slot rutin mingguan â€¢ Sumber jadwal semua program tutor</p>@endif</div></div>
                                 <div class="flex items-center justify-end gap-2">
-                                    @if ($isLocked)<span class="rounded-lg border border-slate-400 px-3 py-2 text-xs text-slate-500">🔒 Terkunci (Sedang Aktif)</span>@else
+                                    @if ($isLocked)<span class="rounded-lg border border-slate-400 px-3 py-2 text-xs text-slate-500">ðŸ”’ Terkunci (Sedang Aktif)</span>@else
                                         <form method="POST" action="{{ route('tutor.availability.toggle', $slot->slot_id) }}">@csrf @method('PATCH')<button class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold hover:bg-slate-50">{{ $slot->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button></form>
-                                        <form method="POST" action="{{ route('tutor.availability.destroy', $slot->slot_id) }}" onsubmit="return confirm('Hapus slot ketersediaan ini?')">@csrf @method('DELETE')<button class="rounded-lg border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">♜ Hapus</button></form>
+                                        <form method="POST" action="{{ route('tutor.availability.destroy', $slot->slot_id) }}" onsubmit="return confirm('Hapus slot ketersediaan ini?')">@csrf @method('DELETE')<button class="rounded-lg border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">â™œ Hapus</button></form>
                                     @endif
                                 </div>
                             </article>
@@ -81,9 +70,9 @@
                     </div>
                 </section>
 
-                <aside class="rounded-2xl border border-cyan-600 bg-sky-100/70 p-4 text-xs leading-relaxed text-slate-600 shadow-[1px_2px_0_#102d3f]"><b class="text-[#102d3f]">ⓘ Sinkronisasi Otomatis Terhubung Global</b><p class="mt-1">Slot Master Availability menjadi sumber jadwal untuk katalog dan pemesanan siswa. Slot yang sudah terikat dengan pemesanan aktif dikunci agar tidak terhapus atau berbenturan dengan kelas lain.</p></aside>
+                <aside class="rounded-2xl border border-cyan-600 bg-sky-100/70 p-4 text-xs leading-relaxed text-slate-600 shadow-[1px_2px_0_#102d3f]"><b class="text-[#102d3f]">â“˜ Sinkronisasi Otomatis Terhubung Global</b><p class="mt-1">Slot Master Availability menjadi sumber jadwal untuk katalog dan pemesanan siswa. Slot yang sudah terikat dengan pemesanan aktif dikunci agar tidak terhapus atau berbenturan dengan kelas lain.</p></aside>
             </div>
-            <footer class="border-t border-slate-200 py-5 text-[11px] text-slate-500"><b class="text-[#102d3f]">KawalBelajar</b> &nbsp;© {{ now()->year }} Yayasan Kawal Pendidikan Nusantara. Semua hak cipta dilindungi.</footer>
+            <footer class="border-t border-slate-200 py-5 text-[11px] text-slate-500"><b class="text-[#102d3f]">KawalBelajar</b> &nbsp;Â© {{ now()->year }} Yayasan Kawal Pendidikan Nusantara. Semua hak cipta dilindungi.</footer>
         </main>
     </div>
     <script>

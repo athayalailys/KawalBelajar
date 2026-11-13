@@ -7,7 +7,7 @@
     <title>Sesi Mengajar - KawalBelajar</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-[#f3f8fa] font-sans text-[#102d3f] antialiased">
+<body class="bg-slate-100/70 font-sans text-slate-800 antialiased">
     @php
         $tutorName = $tutor->user?->full_name ?? 'Tutor';
         $clockInAt = $session?->absensi_masuk_guru ?? $session?->teacher_clock_in;
@@ -24,15 +24,12 @@
         $guardianPhone = $student?->parentProfile?->phone_number ?? $student?->parent_phone;
         $priorNotes = $session?->evaluationScores?->first()?->teacher_notes;
     @endphp
-    <div class="min-h-screen lg:grid lg:grid-cols-[286px_minmax(0,1fr)]">
-        <aside class="flex flex-col border-r border-[#102d3f] bg-white px-4 py-5 lg:sticky lg:top-0 lg:h-screen">
-            <div class="flex items-start justify-between border-b border-slate-200 pb-4"><a href="{{ route('tutor.dashboard') }}" class="flex items-center gap-2.5"><span class="flex h-10 w-10 items-center justify-center rounded-2xl border-2 border-[#102d3f] bg-amber-300"></span><span class="leading-tight"><b class="block text-lg">Kawal<span class="text-cyan-600">Belajar</span></b><small class="rounded bg-cyan-100 px-2 py-0.5 text-[9px] font-extrabold uppercase">Portal Tutor</small></span></a><span class="flex h-9 w-9 items-center justify-center rounded-xl border border-[#102d3f]">&#9664;</span></div>
-            <nav aria-label="Menu tutor" class="mt-4 space-y-1.5 text-[13px] font-semibold"><a href="{{ route('tutor.dashboard') }}" class="flex items-center justify-between rounded-2xl px-3.5 py-3 hover:bg-slate-50"><span>Beranda Tutor</span><span class="h-2 w-2 rounded-full bg-emerald-500"></span></a><a href="{{ route('tutor.classes') }}" class="block rounded-2xl px-3.5 py-3 hover:bg-slate-50">Manajemen Kelas</a><a href="{{ route('tutor.class-details') }}" aria-current="page" class="block rounded-2xl bg-yellow-100 px-3.5 py-3">Sesi Mengajar</a><a href="{{ route('tutor.availability') }}" class="block rounded-2xl px-3.5 py-3 hover:bg-slate-50">Master Availability</a></nav>
-            <div class="mt-auto border-t border-slate-200 pt-3"><div class="flex items-center gap-3 rounded-2xl border-2 border-[#102d3f] bg-slate-50 p-2.5 shadow-[2px_3px_0_#102d3f]"><span class="flex h-10 w-10 items-center justify-center rounded-xl border border-[#102d3f] bg-cyan-100 font-extrabold">{{ mb_strtoupper(collect(explode(' ', $tutorName))->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode('')) }}</span><span><b class="block text-xs">{{ $tutorName }}</b><small class="text-[10px] text-slate-500">{{ $tutor->teacher_level ?? $tutor->focus_subject ?? 'Tutor' }}</small></span></div></div>
-        </aside>
+    <div class="flex min-h-screen">
+        <x-tutor.sidebar />
 
-        <main class="min-w-0 px-5 py-5 sm:px-8 lg:px-10">
-            <header class="mb-6 text-xs text-slate-500 sm:text-sm"><a href="{{ route('tutor.dashboard') }}">Portal Tutor</a><span class="px-2">&rsaquo;</span><b class="text-[#102d3f]">Sesi Mengajar</b></header>
+        <main class="min-w-0 px-5 py-5 sm:px-8 lg:px-10 flex-1">
+            <x-tutor.topbar title="Sesi Mengajar" />
+            <x-tutor.mobile-nav />
             @if (session('status'))<div role="status" class="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{{ session('status') }}</div>@endif
             @if ($errors->any())<div role="alert" class="mb-4 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first() }}</div>@endif
 
