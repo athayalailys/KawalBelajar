@@ -19,7 +19,8 @@ return new class extends Migration
                 $table->string('learning_method')->nullable();
                 $table->boolean('is_active')->default(true);
                 $table->timestamps();
-                $table->index(['teacher_id', 'day_of_week', 'start_time']);
+                // Keep the generated SQL identifier within MySQL's 64-character limit.
+                $table->index(['teacher_id', 'day_of_week', 'start_time'], 'teacher_slots_teacher_day_start_idx');
             });
         } elseif (!Schema::hasColumn('teacher_availability_slots', 'learning_method')) {
             Schema::table('teacher_availability_slots', function (Blueprint $table) {
