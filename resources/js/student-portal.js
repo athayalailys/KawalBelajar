@@ -883,7 +883,9 @@ const studentParentMode = () => ({
         this.error = '';
         this.data = null;
         try {
-            const result = await jsonRequest(this.$el.dataset.verifyPinUrl, {
+            // Keep a valid endpoint even if an old/cached Blade view omits its data attribute.
+            const verifyPinUrl = this.$el.dataset.verifyPinUrl || '/api/student/parent-mode/verify-pin';
+            const result = await jsonRequest(verifyPinUrl, {
                 method: 'POST',
                 body: JSON.stringify({ pin: this.pin }),
             });
