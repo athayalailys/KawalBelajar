@@ -7,6 +7,7 @@
 
     <!-- KRUSIAL: Wajib ada untuk Keamanan & AJAX/Fetch/Alpine.js Request -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <x-google-analytics />
 
     <!-- SEO & Metadata Dinamis -->
     <title>{{ $title ?? 'KawalBelajar - Bimbingan Belajar Terintegrasi & Terpercaya' }}</title>
@@ -24,9 +25,6 @@
     <!-- Vite Assets (Tailwind CSS & Alpine.js / App JS) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    <!-- Analytics Partial (Safe Include) -->
-    @includeWhen(view()->exists('layouts.partials.analytics'), 'layouts.partials.analytics')
-    
     <!-- KRUSIAL: Tempat CSS Tambahan dari Halaman Anak -->
     @stack('styles')
 </head>

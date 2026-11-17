@@ -556,11 +556,47 @@ const bookingWizard = () => ({
             });
             this.order = result.data;
             this.isPaymentOpen = false;
+            window.kawalTrackEvent?.('booking_wizard_completed', {
+                transaction_id: result.data.invoice_number || result.data.order_id,
+                value: Number(result.data.total_amount || 0),
+                currency: 'IDR',
+            });
+            this.pollPaymentStatus(result.data);
         } catch (error) {
             this.error = readableError(error);
         } finally {
             this.submitting = false;
         }
+    },
+
+    pollPaymentStatus(order) {
+        const template = this.$el.dataset.paymentStatusUrl;
+        if (!template || !order?.order_id) return;
+
+        const endpoint = template.replace('__ORDER_ID__', encodeURIComponent(order.order_id));
+        let attempts = 0;
+        const checkStatus = async () => {
+            if (attempts >= 120) return;
+            attempts += 1;
+            try {
+                const result = await jsonRequest(endpoint);
+                if (result.data?.payment_status === 'settled') {
+                    window.kawalTrackEvent?.('payment_settled', {
+                        transaction_id: order.invoice_number || order.order_id,
+                        value: Number(result.data.total_amount || order.total_amount || 0),
+                        currency: 'IDR',
+                    });
+                    return;
+                }
+                if (['expired', 'failed'].includes(result.data?.payment_status)) return;
+            } catch (error) {
+                // Transient polling errors should not interrupt the booking experience.
+            }
+
+            window.setTimeout(checkStatus, 5000);
+        };
+
+        window.setTimeout(checkStatus, 5000);
     },
 
     dayLabel(day) {
@@ -792,7 +828,13 @@ const studentClassroom = () => ({
             this.remainingSeconds = null;
             this.exam.already_submitted = true;
             this.exam.score = result.data.score;
-            if (this.examType === 'pre_test') this.preTestScore = result.data.score;
+            if (this.examType === 'pre_test') {
+                this.preTestScore = result.data.score;
+                window.kawalTrackEvent?.('pretest_completed', {
+                    session_id: result.data.session_id,
+                    score: Number(result.data.score),
+                });
+            }
             this.notice = `Tes berhasil dikirim. Nilai: ${result.data.score}.`;
             await this.loadRoom();
         } catch (error) {

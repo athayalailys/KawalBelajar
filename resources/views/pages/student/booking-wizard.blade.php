@@ -7,6 +7,7 @@
         data-calculate-url="{{ route('api.student.booking.calculate') }}"
         data-slots-url="{{ route('api.student.booking.tutor-slots', ['teacherId' => '__TEACHER_ID__']) }}"
         data-checkout-url="{{ route('api.student.booking.checkout') }}"
+        data-payment-status-url="{{ route('api.student.booking.orders.status', ['orderId' => '__ORDER_ID__']) }}"
         data-education-level="{{ $educationLevel ?? 'SMP' }}"
     >
         <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">

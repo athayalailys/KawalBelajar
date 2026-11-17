@@ -29,6 +29,7 @@ Route::prefix('student')->name('api.student.')->group(function () {
         Route::get('/booking/tutor-slots/{teacherId}', [BookingController::class, 'getTutorSlots'])->name('booking.tutor-slots');
         Route::post('/booking/calculate', [BookingController::class, 'calculate'])->name('booking.calculate');
         Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
+        Route::get('/booking/orders/{orderId}/status', [BookingController::class, 'paymentStatus'])->name('booking.orders.status');
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
         Route::post('/parent-mode/verify-pin', [ParentModeController::class, 'verifyPin'])->name('parent-mode.verify-pin');
         Route::get('/parent-mode/report', [ParentModeController::class, 'report'])->name('parent-mode.report');

@@ -249,4 +249,22 @@ class BookingController extends Controller
             'studentAddress' => $student?->saved_address ?? $student?->address,
         ]);
     }
+
+    public function paymentStatus(Request $request, string $orderId): JsonResponse
+    {
+        $student = $this->studentFor($request);
+        $order = Order::query()
+            ->where('order_id', $orderId)
+            ->where('student_id', $student->student_id)
+            ->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'order_id' => $order->order_id,
+                'payment_status' => $order->payment_status,
+                'total_amount' => (float) $order->total_amount,
+            ],
+        ]);
+    }
 }

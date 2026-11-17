@@ -13,10 +13,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Testing\Fakes\MailFake;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Mail\TutorRejectedMail;
-use App\Mail\TutorApprovedMail;
+use App\Mail\TutorApprovedCredentialsMail;
+use Throwable;
 
 class TutorReviewController extends Controller
 {
@@ -151,17 +153,54 @@ class TutorReviewController extends Controller
             ];
         });
 
-        // PENGIRIMAN EMAIL DI LUAR DB TRANSACTION
-        Mail::to($teacher->user->email)->send(
-            new TutorApprovedMail(
-                $teacher,
-                $credentials['approvedLevels'],
-                $credentials['username'],
-                $credentials['password']
-            )
-        );
+        $tutor = $teacher->fresh('user');
+        $mailSent = false;
+        $mailWarning = null;
+        $mailer = (string) config('mail.default');
+        $transport = (string) config("mail.mailers.{$mailer}.transport", $mailer);
+        $mailIsFaked = Mail::getFacadeRoot() instanceof MailFake;
 
-        return response()->json(['message' => 'Tutor disetujui dan kredensial dikirim melalui email.', 'username' => $credentials['username']]);
+        // Keep mail delivery outside the committed database transaction. A mail
+        // transport outage must not undo an approval or credential generation.
+        $nonDeliveryTransport = $transport === 'log' || ($transport === 'array' && !$mailIsFaked);
+        if ($nonDeliveryTransport) {
+            // These transports do not deliver mail to a real recipient. Avoid
+            // logging credential emails because they contain a temporary password.
+            $mailWarning = "Email belum dikirim: transport mail '{$transport}' tidak mengirim ke inbox. Konfigurasikan SMTP di .env, lalu jalankan php artisan config:clear.";
+        } else {
+            try {
+                Mail::to($tutor->user->email)->send(new TutorApprovedCredentialsMail(
+                    tutorName: $tutor->user->full_name,
+                    email: $tutor->user->email,
+                    temporaryPassword: $credentials['password'],
+                    verifiedLevels: $credentials['approvedLevels'],
+                    loginUrl: route('login'),
+                ));
+                $mailSent = true;
+            } catch (Throwable $exception) {
+                report($exception);
+                $mailWarning = 'Persetujuan berhasil disimpan, tetapi server email gagal menerima pengiriman. Periksa konfigurasi SMTP dan log aplikasi.';
+            }
+        }
+
+        // This session flash is consumed by the next admin page load, allowing
+        // the admin to copy credentials once without including the password in JSON.
+        session()->flash('approved_credentials', [
+            'name' => $tutor->user->full_name,
+            'email' => $tutor->user->email,
+            'password' => $credentials['password'],
+            'verified_levels' => $credentials['approvedLevels'],
+            'mail_sent' => $mailSent,
+            'mail_warning' => $mailWarning,
+        ]);
+
+        return response()->json([
+            'message' => $mailSent
+                ? 'Tutor disetujui dan email kredensial diteruskan ke server email.'
+                : $mailWarning,
+            'username' => $credentials['username'],
+            'mail_sent' => $mailSent,
+        ]);
     }
 
     public function reject(Request $request, Teacher $teacher): JsonResponse

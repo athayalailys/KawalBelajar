@@ -40,4 +40,8 @@ return [
         'webhook_token' => env('XENDIT_CALLBACK_TOKEN'),
     ],
 
+    'google_analytics' => [
+        'measurement_id' => env('GA4_MEASUREMENT_ID'),
+    ],
+
 ];

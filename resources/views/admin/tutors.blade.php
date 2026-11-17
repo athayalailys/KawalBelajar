@@ -1,5 +1,28 @@
 <x-admin-layout title="Tutor & Verifikasi - KawalBelajar" heading="Tutor & Verifikasi">
     <div class="space-y-6" x-data="adminTutorActions()">
+        @if (session()->has('approved_credentials'))
+            @php($credentials = session('approved_credentials'))
+            <section class="rounded-2xl border-2 border-emerald-700 bg-emerald-50 p-5" role="status" data-approved-credentials>
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-black text-emerald-950">Tutor berhasil disetujui</h2>
+                        <p class="mt-1 text-sm text-emerald-900">
+                            {{ $credentials['mail_sent'] ? 'Email kredensial telah diterima server email. Jika belum muncul, periksa folder Spam atau hubungi pengelola email.' : ($credentials['mail_warning'] ?? 'Email belum dikirim. Sampaikan kredensial ini kepada tutor secara aman.') }}
+                        </p>
+                    </div>
+                    <button type="button" @click="copyCredentials()" class="rounded-xl border-2 border-slate-900 bg-white px-4 py-2 text-sm font-bold text-slate-900">
+                        Salin kredensial
+                    </button>
+                </div>
+                <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                    <div><dt class="font-bold text-slate-600">Nama tutor</dt><dd class="font-semibold text-slate-950">{{ $credentials['name'] }}</dd></div>
+                    <div><dt class="font-bold text-slate-600">Email login</dt><dd class="font-semibold text-slate-950">{{ $credentials['email'] }}</dd></div>
+                    <div><dt class="font-bold text-slate-600">Kata sandi sementara</dt><dd class="select-all font-mono font-bold text-slate-950">{{ $credentials['password'] }}</dd></div>
+                    <div><dt class="font-bold text-slate-600">Jenjang disetujui</dt><dd class="font-semibold text-slate-950">{{ implode(', ', $credentials['verified_levels']) }}</dd></div>
+                </dl>
+                <p class="mt-3 text-xs text-slate-700">Kotak ini hanya tampil satu kali setelah persetujuan. Minta tutor mengganti kata sandi setelah masuk.</p>
+            </section>
+        @endif
         <section class="rounded-2xl border-2 border-slate-900 bg-white p-5">
             <h1 class="text-xl font-black">Verifikasi berkas tutor</h1>
             <p class="mt-1 text-sm text-slate-600">Periksa dokumen, tetapkan jenjang yang disetujui, lalu setujui atau tolak pengajuan.</p>
@@ -33,6 +56,16 @@
         function adminTutorActions() {
             const csrf = document.querySelector('meta[name="csrf-token"]').content;
             return {
+                async copyCredentials() {
+                    const credentials = document.querySelector('[data-approved-credentials]');
+                    const text = Array.from(credentials.querySelectorAll('dd')).map((item) => item.textContent.trim()).join('\n');
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        alert('Kredensial berhasil disalin. Simpan dengan aman.');
+                    } catch (error) {
+                        alert('Penyalinan otomatis tidak tersedia. Pilih dan salin kredensial dari kotak ini.');
+                    }
+                },
                 async post(url, body) {
                     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf }, body: JSON.stringify(body) });
                     const json = await response.json();

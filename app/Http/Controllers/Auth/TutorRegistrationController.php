@@ -98,6 +98,7 @@ class TutorRegistrationController extends Controller
 
             return redirect()->route('tutor.register')
                 ->with('step', 1)
+                ->with('analytics_event', 'tutor_registered')
                 ->with('success', 'Pendaftaran berhasil! Berkas Anda sedang dalam proses verifikasi Admin.');
 
         } catch (\Throwable $e) {

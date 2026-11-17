@@ -11,6 +11,7 @@ use App\Models\TeacherLevelRequest;
 use App\Models\TeacherWorkLog;
 use App\Models\TutorPackageRate;
 use App\Models\User;
+use App\Mail\TutorApprovedCredentialsMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\Feature\Concerns\TutorTestFixtures;
@@ -72,22 +73,58 @@ class AdminPortalTest extends TestCase
         $admin = $this->makeAdmin();
 
         $this->actingAs($admin)->postJson(route('admin.tutors.approve', $teacher->teacher_id), ['approved_levels' => ['SD', 'SMP']])
-            ->assertOk()->assertJsonPath('message', 'Tutor disetujui dan kredensial dikirim melalui email.');
+            ->assertOk()
+            ->assertJsonPath('message', 'Tutor disetujui dan email kredensial diteruskan ke server email.')
+            ->assertJsonPath('mail_sent', true);
 
         $this->assertDatabaseHas('teachers', ['teacher_id' => $teacher->teacher_id, 'cv_status' => 'approved']);
         $this->assertSame(['SD', 'SMP'], $teacher->fresh()->verified_levels);
         $this->assertTrue($user->fresh()->is_active);
         $approvedMail = null;
-        Mail::assertSent(\App\Mail\TutorApprovedMail::class, function ($mail) use (&$approvedMail) {
+        Mail::assertSent(TutorApprovedCredentialsMail::class, function (TutorApprovedCredentialsMail $mail) use (&$approvedMail, $user) {
             $approvedMail = $mail;
-            return true;
+            return $mail->hasTo($user->email)
+                && $mail->email === $user->email
+                && $mail->verifiedLevels === ['SD', 'SMP'];
         });
+
+        $this->assertSame($user->email, session('approved_credentials.email'));
+        $this->assertSame(['SD', 'SMP'], session('approved_credentials.verified_levels'));
+        $this->assertTrue(session('approved_credentials.mail_sent'));
+        $this->get(route('admin.tutors'))
+            ->assertOk()
+            ->assertSee('data-approved-credentials', false)
+            ->assertSee($approvedMail->temporaryPassword);
 
         $this->post(route('login.store'), [
             'email' => $user->email,
-            'password' => $approvedMail->password,
+            'password' => $approvedMail->temporaryPassword,
             'user_role' => 'tutor',
         ])->assertRedirect(route('tutor.dashboard'));
+    }
+
+    public function test_approval_does_not_claim_delivery_when_log_mailer_is_configured(): void
+    {
+        Mail::fake();
+        config([
+            'mail.default' => 'log',
+            'mail.mailers.log.transport' => 'log',
+        ]);
+        [, $teacher] = $this->makeTutor(['is_active' => false], [
+            'cv_status' => 'pending',
+            'approved_levels' => [],
+            'verified_levels' => [],
+            'requested_levels' => ['SMP'],
+        ]);
+        $admin = $this->makeAdmin();
+
+        $this->actingAs($admin)->postJson(route('admin.tutors.approve', $teacher->teacher_id), ['approved_levels' => ['SMP']])
+            ->assertOk()
+            ->assertJsonPath('mail_sent', false)
+            ->assertJsonPath('message', "Email belum dikirim: transport mail 'log' tidak mengirim ke inbox. Konfigurasikan SMTP di .env, lalu jalankan php artisan config:clear.");
+
+        $this->assertDatabaseHas('teachers', ['teacher_id' => $teacher->teacher_id, 'cv_status' => 'approved']);
+        Mail::assertNothingOutgoing();
     }
 
     public function test_ver_002_admin_rejects_tutor_registration_with_specific_reason(): void

@@ -24,5 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [EnsureActiveAccount::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        if (! app()->environment('testing')) {
+            \Sentry\Laravel\Integration::handles($exceptions);
+        }
     })->create();
