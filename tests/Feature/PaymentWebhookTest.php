@@ -89,6 +89,27 @@ class PaymentWebhookTest extends TestCase
         $this->assertDatabaseMissing('learning_sessions', ['order_id' => $order->order_id]);
     }
 
+    public function test_xendit_dashboard_test_payload_is_acknowledged_after_token_validation(): void
+    {
+        config(['services.xendit.webhook_token' => 'test-callback-token']);
+
+        $payload = [
+            'id' => 'invoice-test-id',
+            'external_id' => 'invoice_123124123',
+            'status' => 'PAID',
+        ];
+
+        $this->postJson('/api/payments/xendit/webhook', $payload, [
+            'x-callback-token' => 'test-callback-token',
+        ])
+            ->assertOk()
+            ->assertExactJson(['message' => 'Webhook test payload acknowledged.']);
+
+        $this->postJson('/api/payments/xendit/webhook', $payload, [
+            'x-callback-token' => 'wrong-token',
+        ])->assertForbidden();
+    }
+
     private function marketplace(): array
     {
         config(['services.xendit.secret_key' => 'test-secret', 'services.xendit.webhook_token' => 'test-callback-token']);

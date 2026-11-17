@@ -27,6 +27,12 @@ class XenditWebhookController extends Controller
             return response()->json(['message' => 'Invalid webhook token.'], 403);
         }
 
+        // Xendit uses this external_id as a connectivity check in the dashboard.
+        // Acknowledge it only after authenticating the callback token.
+        if ((string) $request->input('external_id') === 'invoice_123124123') {
+            return response()->json(['message' => 'Webhook test payload acknowledged.'], 200);
+        }
+
         $payload = Validator::make($request->all(), [
             'id' => ['required', 'string', 'max:255'],
             'external_id' => ['required', 'string', 'max:255'],
