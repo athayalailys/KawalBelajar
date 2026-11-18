@@ -324,12 +324,12 @@ const bookingWizard = () => ({
         this.selectedPackageId = tutor.packages?.[0]?.package_id || null;
         this.paymentMethod = 'qris';
         this.slotNotice = '';
-        this.slots = (tutor.availability_slots || []).filter((slot) => slot.is_available);
+        this.slots = [];
         this.step = 3;
         this.isDrawerOpen = false;
         this.isPaymentOpen = false;
         this.initializeBookingCalendar();
-        if (this.slots.length === 0) await this.loadSlots();
+        await this.loadSlots();
         if (this.selectedPackageId) this.calculatePricing();
     },
 
@@ -508,24 +508,22 @@ const bookingWizard = () => ({
         try {
             const endpoint = new URL(template.replace('__TEACHER_ID__', encodeURIComponent(this.selectedTutorId)), window.location.origin);
             endpoint.searchParams.set('learning_method', this.method);
+            if (this.selectedPackageId) endpoint.searchParams.set('package_id', this.selectedPackageId);
             const result = await jsonRequest(endpoint);
             this.slots = result.data || [];
             this.selectedScheduleId = null;
-            this.slotNotice = '';
+            this.slotNotice = this.slots.length === 0
+                ? 'Kelas ini tersedia, tetapi tutor belum membuka jadwal untuk metode belajar yang dipilih. Silakan hubungi tutor atau coba kelas lain.'
+                : '';
             if (!this.slots.some((slot) => this.canSelectSlot(slot))) {
-                this.error = 'Belum ada jadwal yang tersedia untuk pilihan ini.';
-                return false;
+                this.slotNotice = 'Kelas ini tersedia, tetapi belum ada jadwal yang dapat dipilih. Coba kembali nanti atau pilih kelas lain.';
+                return true;
             }
             return true;
         } catch (error) {
-            const catalogSlots = (this.selectedTutor?.availability_slots || []).filter((slot) => slot.is_available);
-            this.slots = catalogSlots;
             this.selectedScheduleId = null;
-            if (catalogSlots.length > 0) {
-                this.slotNotice = 'Jadwal ini berasal dari katalog. Ketersediaannya akan diperiksa kembali saat pesanan dibuat.';
-                this.error = '';
-                return true;
-            }
+            this.slots = [];
+            this.slotNotice = 'Jadwal tutor belum dapat dimuat. Kelas tetap tersedia; silakan coba lagi sebentar.';
             this.error = readableError(error);
             return false;
         } finally {

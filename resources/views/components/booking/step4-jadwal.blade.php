@@ -9,6 +9,8 @@
         <button type="button" @click="calendarMode = 'month'" :class="calendarMode === 'month' ? 'bg-teal-600 text-white shadow' : 'text-slate-600'" class="rounded-full px-4 py-2 transition">Bulanan</button>
     </div>
 
+    <p x-show="slotNotice" x-cloak role="status" class="mx-auto mt-4 max-w-3xl rounded-xl border border-amber-300 bg-amber-50 p-3 text-center text-xs leading-relaxed text-amber-950" x-text="slotNotice"></p>
+
     <div class="mt-5 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         <div class="rounded-2xl border-2 border-slate-900 bg-slate-50 p-4">
             <div class="mb-4 flex items-center justify-between gap-3">
@@ -45,7 +47,8 @@
             </div>
 
             <p x-show="slotsLoading" class="rounded-lg bg-slate-50 p-3 text-center text-xs text-slate-500">Memeriksa ketersediaan jadwal…</p>
-            <p x-show="!loading && !selectedCalendarDate" class="rounded-lg bg-amber-50 p-3 text-center text-xs text-amber-900">Belum ada tanggal yang cocok dengan ketersediaan tutor.</p>
+            <p x-show="!slotsLoading && slots.length === 0" class="rounded-lg bg-amber-50 p-3 text-center text-xs text-amber-900">Kelas tetap tersedia, tetapi tutor belum membuka jadwal untuk metode belajar ini. Pilihan jadwal akan muncul setelah tutor menambahkan slot ketersediaan.</p>
+            <p x-show="!slotsLoading && slots.length > 0 && !selectedCalendarDate" class="rounded-lg bg-amber-50 p-3 text-center text-xs text-amber-900">Belum ada tanggal yang cocok dengan ketersediaan tutor.</p>
             <p x-show="!loading && selectedCalendarDate && slotsForSelectedDate.length === 0" class="rounded-lg bg-slate-50 p-3 text-center text-xs text-slate-600">Tidak ada jam tersedia pada tanggal ini. Silakan pilih tanggal lain.</p>
 
             <div class="space-y-2">

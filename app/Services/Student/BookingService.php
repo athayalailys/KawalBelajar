@@ -34,7 +34,9 @@ class BookingService
             throw ValidationException::withMessages(['teacher_id' => 'Tutor tidak tersedia untuk pemesanan.']);
         }
 
-        if (!in_array($student->education_level, $teacher->approved_levels ?? [], true)) {
+        $approvedLevels = array_merge((array) $teacher->approved_levels, (array) $teacher->verified_levels);
+        $approvedLevels = array_map(fn ($level) => mb_strtolower(trim((string) $level)), $approvedLevels);
+        if (!in_array(mb_strtolower(trim((string) $student->education_level)), $approvedLevels, true)) {
             throw ValidationException::withMessages(['teacher_id' => 'Tutor belum disetujui untuk jenjang pembelajar ini.']);
         }
 
@@ -43,7 +45,8 @@ class BookingService
             ->where('is_active', true)
             ->where('is_published', true)
             ->where('is_open', true)
-            ->where('grade_level', $student->education_level)
+            ->whereRaw('LOWER(TRIM(grade_level)) = ?', [mb_strtolower(trim((string) $student->education_level))])
+            ->where('teacher_id', $teacher->teacher_id)
             ->first();
 
         if (!$package) {
@@ -61,23 +64,21 @@ class BookingService
             throw ValidationException::withMessages(['session_package' => 'Paket kelas tidak menyediakan jumlah pertemuan yang dipilih.']);
         }
 
-        $hasMethodAvailability = TeacherAvailabilitySlot::query()
-            ->where('teacher_id', $teacher->teacher_id)
-            ->where('is_active', true)
-            ->where(function ($query) use ($method) {
-                $query->where('learning_method', $method)->orWhereNull('learning_method');
-            })
-            ->exists();
-
-        if (!$hasMethodAvailability) {
-            throw ValidationException::withMessages(['learning_method' => 'Tutor tidak memiliki jadwal untuk metode belajar ini.']);
+        $normalizeMethod = static fn (?string $value): string => match (mb_strtolower(trim((string) $value))) {
+            'online', 'zoom', 'online_zoom' => 'online_zoom',
+            'home_visit', 'home visit' => 'home_visit',
+            default => mb_strtolower(trim((string) $value)),
+        };
+        if ($package->learning_method && $normalizeMethod($package->learning_method) !== $normalizeMethod($method)) {
+            throw ValidationException::withMessages(['learning_method' => 'Metode belajar tidak sesuai dengan kelas yang dipilih.']);
         }
 
         $rateQuery = TutorPackageRate::query()
             ->where('package_id', $package->package_id)
             ->where('teacher_level', $teacher->teacher_level);
-        $rate = (clone $rateQuery)->where('learning_method', $method)->first()
-            ?? $rateQuery->whereNull('learning_method')->first();
+        $rate = $rateQuery->get()->first(fn ($candidate) =>
+            $candidate->learning_method !== null && $normalizeMethod($candidate->learning_method) === $normalizeMethod($method)
+        ) ?? $rateQuery->whereNull('learning_method')->first();
 
         if (!$rate || (float) $rate->category_rate <= 0) {
             throw ValidationException::withMessages(['package_id' => 'Tarif paket untuk level tutor ini belum tersedia.']);
@@ -175,12 +176,17 @@ class BookingService
         $slots = TeacherAvailabilitySlot::query()
             ->where('teacher_id', $teacherId)
             ->where('is_active', true)
-            ->where(function ($query) use ($method) {
-                $query->where('learning_method', $method)->orWhereNull('learning_method');
-            })
+            ->where('is_available', true)
             ->orderBy('day_of_week')
             ->orderBy('start_time')
-            ->get();
+            ->get()
+            ->filter(function (TeacherAvailabilitySlot $slot) use ($method) {
+                $slotMethod = mb_strtolower(trim((string) $slot->learning_method));
+                $requested = mb_strtolower(trim($method));
+                $slotMethod = in_array($slotMethod, ['online', 'zoom', 'online_zoom'], true) ? 'online_zoom' : $slotMethod;
+                $requested = in_array($requested, ['online', 'zoom', 'online_zoom'], true) ? 'online_zoom' : $requested;
+                return $slotMethod === '' || $slotMethod === $requested;
+            });
 
         if ($packageId) {
             $package = ModulePackage::query()->whereKey($packageId)->where('teacher_id', $teacherId)->firstOrFail();
