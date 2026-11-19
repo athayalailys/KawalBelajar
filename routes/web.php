@@ -139,6 +139,10 @@ Route::middleware(['auth', 'active-account'])
             ->name('classes');
         Route::get('/classes/create', [TutorClassesController::class, 'create'])
             ->name('classes.create');
+        Route::post('/classes/draft', [TutorClassesController::class, 'saveDraft'])
+            ->name('classes.draft.store');
+        Route::delete('/classes/draft', [TutorClassesController::class, 'deleteDraft'])
+            ->name('classes.draft.delete');
         Route::post('/classes', [TutorClassesController::class, 'store'])
             ->name('classes.store');
         Route::get('/classes/{packageId}/materials', [TutorClassMaterialsController::class, 'index'])

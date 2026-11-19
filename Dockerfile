@@ -7,7 +7,7 @@ COPY . .
 RUN npm run build
 
 # Laravel PHP-FPM runtime image.
-FROM php:8.3-fpm-alpine AS app
+FROM php:8.4-fpm-alpine AS app
 
 RUN apk add --no-cache \
         freetype \

@@ -9,7 +9,7 @@ Staging:    browser :8081 -> Nginx -> PHP-FPM -> MySQL kawalbelajar_staging
 Production: browser :8080 -> Nginx -> PHP-FPM -> MySQL kawalbelajar_production
 ```
 
-Kedua stack memakai `Dockerfile` multi-stage. Tahap Node menjalankan `npm ci` dan `npm run build`; image PHP-FPM membawa source Laravel, `vendor`, dan aset Vite hasil build. Nginx menggunakan salinan `public/` dari build yang sama. Database hanya tersedia di jaringan internal Compose dan tidak membuka port MySQL ke host.
+Kedua stack memakai `Dockerfile` multi-stage. Tahap Node menjalankan `npm ci` dan `npm run build`; image PHP-FPM 8.4 membawa source Laravel, `vendor`, dan aset Vite hasil build. PHP 8.4 diperlukan oleh versi dependency yang terkunci di `composer.lock`. Nginx menggunakan salinan `public/` dari build yang sama. Database hanya tersedia di jaringan internal Compose dan tidak membuka port MySQL ke host. Port HTTP Nginx hanya terikat ke loopback host; untuk akses publik, teruskan dari reverse proxy yang menangani HTTPS/TLS.
 
 Volume persisten Staging: `kawalbelajar_db_staging_data` dan `kawalbelajar_storage_staging`. Volume Production: `kawalbelajar_db_production_data` dan `kawalbelajar_storage_production`. Jangan menghapus volume Production saat memperbarui container.
 
@@ -26,7 +26,7 @@ Isi `DB_PASSWORD` dengan password database yang kuat dan unik. Buat `APP_KEY` un
 
 ## Jalankan Staging (UAT)
 
-Pada `.env.staging`, pertahankan `APP_ENV=staging`, `APP_DEBUG=true`, `APP_URL=http://localhost:8081`, `DB_DATABASE=kawalbelajar_staging`, `SENTRY_ENVIRONMENT=staging`, dan `GA4_MEASUREMENT_ID=` kosong. Isi `XENDIT_SECRET_KEY` dengan secret **development/sandbox**. Jangan gunakan kredensial Xendit live di UAT.
+Pada `.env.staging`, pertahankan `APP_ENV=staging`, `APP_DEBUG=false`, `APP_URL=http://localhost:8081` untuk penggunaan lokal (atau URL HTTPS staging di belakang reverse proxy), `DB_DATABASE=kawalbelajar_staging`, `SENTRY_ENVIRONMENT=staging`, dan `GA4_MEASUREMENT_ID=` kosong. Isi `XENDIT_SECRET_KEY` dengan secret **development/sandbox**. Jangan gunakan kredensial Xendit live di UAT.
 
 ```powershell
 docker compose --env-file .env.staging -f docker-compose.staging.yml -p kawalbelajar-staging build
@@ -45,14 +45,14 @@ Buka [http://localhost:8081](http://localhost:8081). Seeder Staging menyiapkan a
 
 ## Jalankan Production
 
-Pada `.env.production`, gunakan `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=http://localhost:8080`, `DB_DATABASE=kawalbelajar_production`, `SENTRY_ENVIRONMENT=production`, serta Measurement ID GA4 Production yang sebenarnya. Isi hanya secret **live** Xendit. Ganti `ADMIN_INITIAL_EMAIL`, `ADMIN_INITIAL_NAME`, dan `ADMIN_INITIAL_PASSWORD`; password awal harus minimal 16 karakter. Jangan menyimpan kredensial aktual di repositori.
+Pada `.env.production`, gunakan `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://domain-production-anda`, `DB_DATABASE=kawalbelajar_production`, `SENTRY_ENVIRONMENT=production`, serta Measurement ID GA4 Production yang sebenarnya. Isi hanya secret **live** Xendit. Ganti `ADMIN_INITIAL_EMAIL`, `ADMIN_INITIAL_NAME`, dan `ADMIN_INITIAL_PASSWORD`; password awal harus minimal 16 karakter. Jangan menyimpan kredensial aktual di repositori. Siapkan reverse proxy di host untuk meneruskan HTTPS ke `127.0.0.1:8080`; jangan publikasikan aplikasi langsung lewat HTTP.
 
 ```powershell
 docker compose --env-file .env.production -f docker-compose.production.yml -p kawalbelajar-production build
 docker compose --env-file .env.production -f docker-compose.production.yml -p kawalbelajar-production run --rm --no-deps app_production php artisan key:generate --show
 ```
 
-Salin key yang ditampilkan ke `APP_KEY` di `.env.production`, lalu jalankan migrasi dan seeder Administrator saja:
+Salin key yang ditampilkan ke `APP_KEY` di `.env.production`. Sebelum migrasi pertama pada database yang sudah berisi data, buat dan verifikasi backup database; salah satu migrasi memindahkan skor lama lalu menghapus tabel legacy `nilai_evaluasi`. Kemudian jalankan migrasi dan seeder Administrator saja:
 
 ```powershell
 docker compose --env-file .env.production -f docker-compose.production.yml -p kawalbelajar-production up -d

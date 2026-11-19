@@ -21,6 +21,18 @@ class TutorAvailabilityController extends Controller
     public function index(Request $request): View
     {
         $teacher = $this->teacherFor($request);
+        $returnContext = $this->requestedReturnContext($request);
+        if (! $returnContext && ! $request->query->has('return_to')) {
+            $savedContext = $request->session()->get('tutor_availability_return');
+            $returnContext = is_array($savedContext) && in_array($savedContext['step'] ?? null, [1, 3], true)
+                ? $savedContext
+                : null;
+        }
+        if ($returnContext) {
+            $request->session()->put('tutor_availability_return', $returnContext);
+        } else {
+            $request->session()->forget('tutor_availability_return');
+        }
         $slots = $teacher->availabilitySlots()->orderByRaw("CASE day_of_week WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3 WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6 ELSE 7 END")
             ->orderBy('start_time')->get();
 
@@ -65,6 +77,14 @@ class TutorAvailabilityController extends Controller
             'availableSlotsCount' => $slots->where('is_active', true)->where('is_booked', false)->count(),
             'bookedSlotsCount' => $slots->where('is_active', true)->where('is_booked', true)->count(),
             'selectedDay' => $request->query('day', now()->format('l')),
+            'returnToCreateClass' => $returnContext !== null,
+            'returnStep' => $returnContext['step'] ?? null,
+            'returnUrl' => $returnContext
+                ? route('tutor.classes.create', ['step' => $returnContext['step']])
+                : route('tutor.dashboard'),
+            'returnQuery' => $returnContext
+                ? ['return_to' => 'create_class', 'step' => $returnContext['step']]
+                : [],
         ]);
     }
 
@@ -114,7 +134,10 @@ class TutorAvailabilityController extends Controller
             return back()->withInput()->withErrors(['start_time' => 'Slot ini berbenturan dengan waktu ketersediaan aktif yang sudah ada.']);
         }
 
-        return redirect()->route('tutor.availability', ['day' => $data['day_of_week']])->with('status', 'Slot ketersediaan berhasil ditambahkan ke Master Availability.');
+        return redirect()->route('tutor.availability', array_merge(
+            ['day' => $data['day_of_week']],
+            $this->availabilityReturnQuery($request),
+        ))->with('status', 'Slot ketersediaan berhasil ditambahkan ke Master Availability.');
     }
 
     public function toggle(Request $request, string $slotId): RedirectResponse
@@ -124,7 +147,10 @@ class TutorAvailabilityController extends Controller
         abort_if($this->isBooked($teacher, $slot), 409, 'Slot sedang terikat dengan pemesanan atau jadwal kelas.');
         $slot->update(['is_active' => ! $slot->is_active, 'is_available' => ! $slot->is_active]);
 
-        return back()->with('status', 'Status slot ketersediaan berhasil diperbarui.');
+        return redirect()->route('tutor.availability', array_merge(
+            ['day' => $slot->day_of_week],
+            $this->availabilityReturnQuery($request),
+        ))->with('status', 'Status slot ketersediaan berhasil diperbarui.');
     }
 
     public function destroy(Request $request, string $slotId): RedirectResponse
@@ -134,7 +160,10 @@ class TutorAvailabilityController extends Controller
         abort_if($this->isBooked($teacher, $slot), 409, 'Slot yang sudah terikat pada kelas tidak dapat dihapus.');
         $slot->delete();
 
-        return back()->with('status', 'Slot ketersediaan berhasil dihapus.');
+        return redirect()->route('tutor.availability', array_merge(
+            ['day' => $slot->day_of_week],
+            $this->availabilityReturnQuery($request),
+        ))->with('status', 'Slot ketersediaan berhasil dihapus.');
     }
 
     private function isBooked(Teacher $teacher, TeacherAvailabilitySlot $slot): bool
@@ -163,5 +192,30 @@ class TutorAvailabilityController extends Controller
         abort_unless($user && in_array($user->role, ['teacher', 'tutor'], true), 403);
 
         return Teacher::query()->with('user')->where('user_id', $user->user_id)->firstOrFail();
+    }
+
+    private function requestedReturnContext(Request $request): ?array
+    {
+        if ($request->query('return_to') !== 'create_class') {
+            return null;
+        }
+
+        $step = (int) $request->query('step', 3);
+        if (! in_array($step, [1, 3], true)) {
+            return null;
+        }
+
+        return ['step' => $step];
+    }
+
+    private function availabilityReturnQuery(Request $request): array
+    {
+        $context = $this->requestedReturnContext($request);
+        if (! $context && $request->input('return_to') === 'create_class' && in_array((int) $request->input('step'), [1, 3], true)) {
+            $context = ['step' => (int) $request->input('step')];
+        }
+        $context ??= $request->isMethod('post') ? $request->session()->get('tutor_availability_return') : null;
+
+        return $context ? ['return_to' => 'create_class', 'step' => $context['step']] : [];
     }
 }

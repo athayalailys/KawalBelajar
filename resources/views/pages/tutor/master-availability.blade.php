@@ -22,6 +22,7 @@
             <div class="space-y-6 pb-10">
                 @if (session('status'))<div role="status" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{{ session('status') }}</div>@endif
                 @if ($errors->any())<div role="alert" class="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first() }}</div>@endif
+                <a href="{{ $returnUrl }}" class="inline-flex rounded-xl border-2 border-slate-900 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-amber-50">← {{ $returnToCreateClass ? 'Kembali ke Langkah '.$returnStep.' Buat Kelas' : 'Kembali ke Beranda Tutor' }}</a>
 
                 <section class="grid gap-5 rounded-[28px] border-2 border-sky-300 bg-white p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_335px] lg:items-center" aria-labelledby="availability-title">
                     <div><h1 id="availability-title" class="text-2xl font-extrabold tracking-tight sm:text-3xl">Master Availability Pool</h1><p class="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">Atur slot jam ketersediaan rutin mingguan Anda. Jadwal ini otomatis menjadi sumber ketersediaan untuk seluruh kelas yang Anda buka, bebas bentrok lintas mata pelajaran.</p></div>
@@ -32,6 +33,7 @@
                     <h2 id="add-slot-title" class="flex items-center gap-2 text-base font-extrabold"><span class="rounded-lg bg-teal-700 px-2 py-1 text-white">+</span> Tambah Slot Waktu Ketersediaan Baru</h2>
                     <form method="POST" action="{{ route('tutor.availability.store') }}" class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[1.15fr_1fr_auto_1fr_auto] xl:items-end">
                         @csrf
+                        @if ($returnToCreateClass)<input type="hidden" name="return_to" value="create_class"><input type="hidden" name="step" value="{{ $returnStep }}">@endif
                         <label class="text-[10px] font-bold uppercase tracking-wide text-slate-600">Pilih Hari Rutin<select name="day_of_week" required class="mt-1 block h-12 w-full rounded-xl border-2 border-[#102d3f] bg-white px-3 text-sm font-medium normal-case">@foreach ($days as $dayValue => $dayLabel)<option value="{{ $dayValue }}" @selected(old('day_of_week', $selectedDay) === $dayValue)>{{ $dayLabel }}</option>@endforeach</select></label>
                         <label class="text-[10px] font-bold uppercase tracking-wide text-slate-600">Jam Mulai<input type="time" name="start_time" value="{{ old('start_time', '18:00') }}" required class="mt-1 block h-12 w-full rounded-xl border-2 border-[#102d3f] bg-white px-3 text-sm font-medium normal-case"></label>
                         <span class="hidden pb-3 text-2xl xl:block">→</span>
@@ -45,7 +47,7 @@
                     <nav class="grid grid-cols-2 gap-1 rounded-2xl border-2 border-slate-300 bg-white p-1 sm:grid-cols-4 lg:grid-cols-7">
                         @foreach ($days as $dayValue => $dayLabel)
                             @php($dayCount = $slots->where('day_of_week', $dayValue)->where('is_active', true)->count())
-                            <a href="{{ route('tutor.availability', ['day' => $dayValue]) }}" @if ($selectedDay === $dayValue) aria-current="page" @endif class="rounded-xl px-3 py-2.5 text-center text-xs font-bold {{ $selectedDay === $dayValue ? 'border-2 border-[#102d3f] bg-teal-700 text-white shadow-[2px_2px_0_#102d3f]' : 'text-slate-600 hover:bg-slate-100' }}">{{ $dayLabel }} <span class="{{ $selectedDay === $dayValue ? 'text-cyan-100' : 'text-slate-400' }}">({{ $dayCount }})</span></a>
+                            <a href="{{ route('tutor.availability', array_merge(['day' => $dayValue], $returnQuery)) }}" @if ($selectedDay === $dayValue) aria-current="page" @endif class="rounded-xl px-3 py-2.5 text-center text-xs font-bold {{ $selectedDay === $dayValue ? 'border-2 border-[#102d3f] bg-teal-700 text-white shadow-[2px_2px_0_#102d3f]' : 'text-slate-600 hover:bg-slate-100' }}">{{ $dayLabel }} <span class="{{ $selectedDay === $dayValue ? 'text-cyan-100' : 'text-slate-400' }}">({{ $dayCount }})</span></a>
                         @endforeach
                     </nav>
                 </section>
@@ -60,8 +62,8 @@
                                     @if ($isLocked)<p class="mt-1 text-xs text-amber-800">Terikat dengan program: {{ $slot->usage->package_name ?? 'Pemesanan siswa' }}{{ $slot->usage->subject_name ? ' ('.$slot->usage->subject_name.($slot->usage->grade_level ? ' '.$slot->usage->grade_level : '').')' : '' }}</p>@else<p class="mt-1 text-xs text-slate-500">Slot rutin mingguan • Sumber jadwal semua program tutor</p>@endif</div></div>
                                 <div class="flex items-center justify-end gap-2">
                                     @if ($isLocked)<span class="rounded-lg border border-slate-400 px-3 py-2 text-xs text-slate-500">🔒 Terkunci (Sedang Aktif)</span>@else
-                                        <form method="POST" action="{{ route('tutor.availability.toggle', $slot->slot_id) }}">@csrf @method('PATCH')<button class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold hover:bg-slate-50">{{ $slot->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button></form>
-                                        <form method="POST" action="{{ route('tutor.availability.destroy', $slot->slot_id) }}" onsubmit="return confirm('Hapus slot ketersediaan ini?')">@csrf @method('DELETE')<button class="rounded-lg border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">× Hapus</button></form>
+                                        <form method="POST" action="{{ route('tutor.availability.toggle', $slot->slot_id) }}">@csrf @method('PATCH') @if ($returnToCreateClass)<input type="hidden" name="return_to" value="create_class"><input type="hidden" name="step" value="{{ $returnStep }}">@endif<button class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold hover:bg-slate-50">{{ $slot->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button></form>
+                                        <form method="POST" action="{{ route('tutor.availability.destroy', $slot->slot_id) }}" onsubmit="return confirm('Hapus slot ketersediaan ini?')">@csrf @method('DELETE') @if ($returnToCreateClass)<input type="hidden" name="return_to" value="create_class"><input type="hidden" name="step" value="{{ $returnStep }}">@endif<button class="rounded-lg border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">× Hapus</button></form>
                                     @endif
                                 </div>
                             </article>

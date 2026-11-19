@@ -41,7 +41,7 @@ class TutorAuthAndProfileTest extends TestCase
     {
         Storage::fake('public');
         $payload = $this->validRegistrationPayload();
-        $payload['cv_file'] = UploadedFile::fake()->image('cv.jpg');
+        $payload['cv_file'] = UploadedFile::fake()->createWithContent('cv.jpg', 'not a PDF document');
 
         $this->postJson('/api/tutors/register', $payload)
             ->assertUnprocessable()

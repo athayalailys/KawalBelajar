@@ -8,8 +8,10 @@ use App\Models\ModulePackage;
 use App\Models\Squad;
 use App\Models\Subject;
 use App\Models\Teacher;
+use App\Models\TutorClassDraft;
 use App\Models\TutorPackageRate;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -59,8 +61,16 @@ class TutorClassesController extends Controller
             }
         }
 
+        $savedDraft = TutorClassDraft::query()->where('teacher_id', $tutor->teacher_id)->first();
+        $serverDraft = $savedDraft?->draft_data;
+        if (is_array($serverDraft)) {
+            $serverDraft['savedAt'] = ($savedDraft->updated_at?->getTimestamp() ?? 0) * 1000;
+        }
+
         return view('pages.tutor.create-class', [
             'tutor' => $tutor,
+            'initialStep' => max(1, min(4, (int) $request->query('step', 1))),
+            'serverDraft' => $serverDraft,
             'approvedLevels' => $tutor->approved_levels ?? $tutor->verified_levels ?? [],
             'subjectsByLevel' => $this->subjectOptions(),
             'defaultLocation' => $tutor->default_location,
@@ -70,8 +80,61 @@ class TutorClassesController extends Controller
         ]);
     }
 
+    public function saveDraft(Request $request): JsonResponse
+    {
+        $tutor = $this->tutorFor($request);
+        $validated = $request->validate([
+            'draft' => ['required', 'array'],
+            'draft.version' => ['required', 'integer', 'in:1'],
+            'draft.step' => ['required', 'integer', 'between:1,4'],
+            'draft.savedAt' => ['nullable', 'integer', 'min:0'],
+            'draft.values' => ['required', 'array'],
+            'draft.values.package_type' => ['nullable', Rule::in(['monthly', 'instant'])],
+            'draft.values.grade_level' => ['nullable', 'string', 'max:20'],
+            'draft.values.subject_name' => ['nullable', 'string', 'max:100'],
+            'draft.values.package_name' => ['nullable', 'string', 'max:255'],
+            'draft.values.target_learning' => ['nullable', 'string', 'max:3000'],
+            'draft.values.learning_method' => ['nullable', Rule::in(['online', 'online_zoom', 'home_visit'])],
+            'draft.values.target_capacity' => ['nullable', 'integer', 'between:1,20'],
+            'draft.values.default_location' => ['nullable', 'string', 'max:1000'],
+            'draft.values.zoom_meeting_url' => ['nullable', 'url', 'max:255'],
+            'draft.values.availability_slot_ids' => ['nullable', 'array', 'max:64'],
+            'draft.values.availability_slot_ids.*' => ['string', 'uuid'],
+        ]);
+
+        $values = collect($validated['draft']['values'])->only([
+            'package_type', 'grade_level', 'subject_name', 'package_name', 'target_learning',
+            'learning_method', 'target_capacity', 'default_location', 'zoom_meeting_url', 'availability_slot_ids',
+        ])->all();
+        $values['availability_slot_ids'] = array_values(array_unique($values['availability_slot_ids'] ?? []));
+        $draft = [
+            'version' => 1,
+            'step' => (int) $validated['draft']['step'],
+            'values' => $values,
+            'savedAt' => now()->getTimestamp() * 1000,
+        ];
+
+        TutorClassDraft::query()->updateOrCreate(
+            ['teacher_id' => $tutor->teacher_id],
+            ['draft_data' => $draft],
+        );
+
+        return response()->json(['success' => true, 'savedAt' => $draft['savedAt']]);
+    }
+
+    public function deleteDraft(Request $request): JsonResponse
+    {
+        $tutor = $this->tutorFor($request);
+        TutorClassDraft::query()->where('teacher_id', $tutor->teacher_id)->delete();
+
+        return response()->json(['success' => true]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
+        if ($request->input('learning_method') === 'online') {
+            $request->merge(['learning_method' => 'online_zoom']);
+        }
         $user = $request->user();
         abort_unless($user && in_array($user->role, ['teacher', 'tutor'], true), 403);
         $tutor = Teacher::query()->where('user_id', $user->user_id)->firstOrFail();
@@ -88,6 +151,7 @@ class TutorClassesController extends Controller
             'subject_name' => ['required', 'string', 'max:100'],
             'target_learning' => ['required', 'string', 'max:3000'],
             'learning_method' => ['required', Rule::in(['online_zoom', 'home_visit'])],
+            'zoom_meeting_url' => ['nullable', 'url', 'max:255'],
             'target_capacity' => ['required', 'integer', 'min:1', 'max:20'],
             'default_location' => ['required_if:learning_method,home_visit', 'nullable', 'string', 'max:1000'],
             'availability_slot_ids' => ['required', 'array', 'min:1'],
@@ -101,8 +165,14 @@ class TutorClassesController extends Controller
         ]);
         $validated['grade_level'] = $this->normalizeGrade($validated['grade_level']);
 
-        $configuredSubjects = Subject::query()->whereRaw('LOWER(TRIM(grade_level)) = ?', [strtolower($validated['grade_level'])])->get();
-        if ($configuredSubjects->isNotEmpty() && ! $configuredSubjects->contains(fn (Subject $subject) => $subject->is_active && $subject->name === $validated['subject_name'])) {
+        $approvedLevel = collect($approvedLevels)->first(fn ($level) => mb_strtolower(trim((string) $level)) === mb_strtolower(trim($validated['grade_level'])));
+        if ($approvedLevel === null) {
+            return back()->withInput()->withErrors(['grade_level' => 'Jenjang ini belum disetujui untuk akun tutor.']);
+        }
+        $validated['grade_level'] = mb_strtoupper(trim($validated['grade_level']));
+
+        $configuredSubjects = Subject::query()->whereRaw('LOWER(TRIM(grade_level)) = ?', [mb_strtolower($validated['grade_level'])])->get();
+        if ($configuredSubjects->isNotEmpty() && ! $configuredSubjects->contains(fn (Subject $subject) => $subject->is_active && mb_strtolower(trim($subject->name)) === mb_strtolower(trim($validated['subject_name'])))) {
             return back()->withInput()->withErrors(['subject_name' => 'Mata pelajaran ini tidak aktif untuk jenjang yang dipilih.']);
         }
 
@@ -155,6 +225,8 @@ class TutorClassesController extends Controller
                     'grade_level' => $validated['grade_level'],
                     'subject_name' => $validated['subject_name'],
                     'learning_method' => $validated['learning_method'],
+                    'zoom_meeting_url' => $validated['zoom_meeting_url'] ?? null,
+                    'home_visit_area' => $validated['learning_method'] === 'home_visit' ? ($validated['default_location'] ?? null) : null,
                     'max_capacity' => $validated['target_capacity'],
                     'description' => $validated['target_learning'],
                     'target_learning' => $validated['target_learning'],
@@ -177,9 +249,33 @@ class TutorClassesController extends Controller
                     ->unique()->map(fn ($slotId) => ['package_id' => $package->package_id, 'slot_id' => $slotId])->all());
 
                 if ($validated['learning_method'] === 'home_visit') {
-                    $tutor->update(['default_location' => $validated['default_location']]);
+                    $tutor->update(['default_location' => mb_substr($validated['default_location'], 0, 150)]);
                 }
         });
+
+        TutorClassDraft::query()->updateOrCreate(
+            ['teacher_id' => $tutor->teacher_id],
+            [
+                'package_id' => $newPackageId,
+                'draft_data' => [
+                    'version' => 1,
+                    'step' => 4,
+                    'savedAt' => now()->getTimestamp() * 1000,
+                    'values' => [
+                        'package_type' => $validated['package_type'],
+                        'grade_level' => $validated['grade_level'],
+                        'subject_name' => $validated['subject_name'],
+                        'package_name' => $validated['package_name'],
+                        'target_learning' => $validated['target_learning'],
+                        'learning_method' => $validated['learning_method'],
+                        'target_capacity' => $validated['target_capacity'],
+                        'default_location' => $validated['default_location'] ?? '',
+                        'zoom_meeting_url' => $validated['zoom_meeting_url'] ?? '',
+                        'availability_slot_ids' => array_values(array_unique($validated['availability_slot_ids'])),
+                    ],
+                ],
+            ],
+        );
 
         return redirect()->route('tutor.classes.materials', ['packageId' => $newPackageId, 'session' => 1])
             ->with('status', 'Draf kelas berhasil dibuat. Lengkapi materi dan soal setiap pertemuan sebelum membuka pendaftaran.');
@@ -294,12 +390,20 @@ class TutorClassesController extends Controller
         ];
 
         foreach ($defaults as $level => $names) {
-            $configured = Subject::query()->where('grade_level', $level)->get();
+            $configured = Subject::query()->whereRaw('LOWER(TRIM(grade_level)) = ?', [mb_strtolower($level)])->get();
             $defaults[$level] = $configured->isEmpty()
                 ? array_map(fn (string $name) => ['name' => $name, 'active' => true], $names)
                 : $configured->map(fn (Subject $subject) => ['name' => $subject->name, 'active' => $subject->is_active])->all();
         }
 
         return $defaults;
+    }
+
+    private function tutorFor(Request $request): Teacher
+    {
+        $user = $request->user();
+        abort_unless($user && in_array($user->role, ['teacher', 'tutor'], true), 403);
+
+        return Teacher::query()->where('user_id', $user->user_id)->firstOrFail();
     }
 }

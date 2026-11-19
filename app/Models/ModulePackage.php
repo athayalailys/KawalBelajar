@@ -25,6 +25,8 @@ class ModulePackage extends Model
         'grade_level',
         'subject_name',
         'learning_method',
+        'zoom_meeting_url',
+        'home_visit_area',
         'max_capacity',
         'description',
         'target_learning',

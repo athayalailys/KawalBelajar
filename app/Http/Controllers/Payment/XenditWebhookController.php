@@ -8,6 +8,7 @@ use App\Models\LearningSession;
 use App\Models\LearningMaterial;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\ModulePackage;
 use App\Services\Student\BookingService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -130,6 +131,7 @@ class XenditWebhookController extends Controller
         }
 
         $student = $order->student()->first();
+        $package = ModulePackage::query()->whereKey($order->package_id)->first();
         $address = $order->learning_method === 'home_visit' ? $student?->saved_address : null;
         for ($sessionIndex = 0; $sessionIndex < (int) $order->session_package; $sessionIndex++) {
             $start = $firstStart->copy()->addWeeks($sessionIndex);
@@ -158,6 +160,7 @@ class XenditWebhookController extends Controller
                 'scheduled_at' => $start,
                 'duration_minutes' => $start->diffInMinutes($end),
                 'learning_method' => $order->learning_method,
+                'zoom_meeting_url' => $order->learning_method === 'online_zoom' ? $package?->zoom_meeting_url : null,
                 'session_status' => 'scheduled',
                 'status' => 'scheduled',
                 'onsite_address' => $address,

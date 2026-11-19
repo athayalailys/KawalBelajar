@@ -7,6 +7,7 @@ use App\Models\LearningMaterial;
 use App\Models\ModulePackage;
 use App\Models\QuestionBank;
 use App\Models\Teacher;
+use App\Models\TutorClassDraft;
 use App\Models\TutorClassSessionContent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -134,8 +135,14 @@ class TutorClassMaterialsController extends Controller
         }
 
         $package->update(['is_active' => true, 'is_published' => true, 'is_open' => true]);
+        TutorClassDraft::query()
+            ->where('teacher_id', $teacher->teacher_id)
+            ->where('package_id', $package->package_id)
+            ->delete();
 
-        return redirect()->route('tutor.classes')->with('status', 'Kelas berhasil dipublikasikan dan dibuka untuk pendaftaran siswa.');
+        return redirect()->route('tutor.classes')
+            ->with('clear_tutor_class_draft', $teacher->teacher_id)
+            ->with('status', 'Kelas berhasil dipublikasikan dan dibuka untuk pendaftaran siswa.');
     }
 
     private function plannedSessions(ModulePackage $package): int

@@ -2,6 +2,7 @@ import './bootstrap';
 import Alpine from 'alpinejs';
 import tutorWizard from './tutor-wizard';
 import registerStudentPortal from './student-portal';
+import './tutor-class-wizard';
 
 Alpine.data('tutorWizard', tutorWizard);
 registerStudentPortal(Alpine);

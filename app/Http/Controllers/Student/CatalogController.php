@@ -15,7 +15,10 @@ class CatalogController extends Controller
 {
     public function subjects(Request $request): JsonResponse
     {
-        $filters = Validator::make($request->query(), [
+        $query = $request->query();
+        $query['education_level'] = mb_strtoupper(trim((string) ($query['education_level'] ?? '')));
+        $query['learning_method'] = $this->normalizeMethod((string) ($query['learning_method'] ?? ''));
+        $filters = Validator::make($query, [
             'education_level' => ['required', 'string', 'in:SD,SMP,SMA,UMUM'],
             'learning_method' => ['required', 'string', 'in:home_visit,online_zoom'],
         ])->validate();
@@ -28,7 +31,10 @@ class CatalogController extends Controller
 
     public function index(Request $request, BookingService $bookingService): JsonResponse
     {
-        $filters = Validator::make($request->query(), [
+        $query = $request->query();
+        $query['education_level'] = mb_strtoupper(trim((string) ($query['education_level'] ?? '')));
+        $query['learning_method'] = $this->normalizeMethod((string) ($query['learning_method'] ?? ''));
+        $filters = Validator::make($query, [
             'education_level' => ['required', 'string', 'in:SD,SMP,SMA,UMUM'],
             'learning_method' => ['required', 'string', 'in:home_visit,online_zoom'],
             'subject' => ['nullable', 'string', 'max:100'],
@@ -74,6 +80,7 @@ class CatalogController extends Controller
                     'grade_level' => $package->grade_level,
                     'subject_name' => $package->subject_name,
                     'learning_method' => $method,
+                    'home_visit_area' => $package->home_visit_area,
                     'description' => $package->description,
                     'base_price' => $package->base_price,
                     'teacher_rate_per_session' => $rate->category_rate,

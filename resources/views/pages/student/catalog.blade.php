@@ -52,6 +52,7 @@
                                         <h3 class="font-bold text-slate-900" x-text="pack.package_name"></h3>
                                         <p class="mt-1 text-xs text-slate-500" x-text="pack.grade_level"></p>
                                         <p x-show="pack.description" class="mt-2 text-sm text-slate-600" x-text="pack.description"></p>
+                                        <p x-show="learningMethod === 'home_visit' && pack.home_visit_area" class="mt-2 text-xs font-semibold text-teal-800" x-text="`Area Home Visit: ${pack.home_visit_area}`"></p>
                                     </div>
                                     <div class="text-right">
                                         <p class="text-xs text-slate-500">Biaya per sesi</p>

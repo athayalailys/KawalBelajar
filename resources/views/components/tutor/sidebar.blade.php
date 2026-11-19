@@ -17,7 +17,7 @@
         </a>
         <nav aria-label="Navigasi tutor" class="mt-5 space-y-1.5">
             @foreach ($items as $item)
-                <a href="{{ route($item['route']) }}" @if ($item['active']) aria-current="page" @endif class="flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm {{ $item['active'] ? 'border border-amber-200 bg-amber-50 font-bold text-slate-900' : 'border border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                <a href="{{ route($item['route'], $item['route'] === 'tutor.availability' ? ['return_to' => 'dashboard'] : []) }}" @if ($item['active']) aria-current="page" @endif class="flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm {{ $item['active'] ? 'border border-amber-200 bg-amber-50 font-bold text-slate-900' : 'border border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <span class="flex h-7 w-7 items-center justify-center text-base" aria-hidden="true">{{ $item['icon'] }}</span><span>{{ $item['label'] }}</span>
                 </a>
             @endforeach

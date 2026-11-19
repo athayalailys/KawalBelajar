@@ -115,6 +115,11 @@
         </main>
     </div>
     @include('pages.tutor.create-class-modal')
+    @if (session('clear_tutor_class_draft'))
+        @php($draftStorageKey = 'kb_tutor_class_draft_'.session('clear_tutor_class_draft'))
+        @php($draftClearKey = 'kb_tutor_class_draft_clear_'.session('clear_tutor_class_draft'))
+        <script>try { localStorage.removeItem(@js($draftStorageKey)); localStorage.removeItem(@js($draftClearKey)); } catch {}</script>
+    @endif
     <script>
         document.getElementById('class-search')?.addEventListener('input', (event) => {
             const query = event.target.value.trim().toLocaleLowerCase('id');

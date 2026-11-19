@@ -24,7 +24,8 @@ class TutorClassWizardTest extends TestCase
         $response = $this->actingAs($user)->get(route('tutor.classes.create'));
 
         $response->assertOk()
-            ->assertSee('tariffs =', false)
+            ->assertSee('kbTutorClassDraftConfig', false)
+            ->assertSee('tariffs:', false)
             ->assertSee('SMP|online_zoom', false)
             ->assertSee('SMP|home_visit', false)
             ->assertSee('60000', false)
@@ -39,9 +40,9 @@ class TutorClassWizardTest extends TestCase
         $this->actingAs($user)->get(route('tutor.classes.create'))
             ->assertOk()
             ->assertSee('SMP|home_visit', false)
+            ->assertSee('id="capacity-select"', false)
             ->assertSee('data-capacity-option="5"', false)
             ->assertSee('data-capacity-option="20"', false)
-            ->assertSee('const maximum = normalizeMethod(method.value) === \'home_visit\' ? 5 : 20', false)
             ->assertSee('Estimasi nilai paket per siswa', false);
     }
 
