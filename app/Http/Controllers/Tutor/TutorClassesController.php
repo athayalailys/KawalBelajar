@@ -40,23 +40,24 @@ class TutorClassesController extends Controller
         abort_unless($user && in_array($user->role, ['teacher', 'tutor'], true), 403);
         $tutor = Teacher::query()->with('user')->where('user_id', $user->user_id)->firstOrFail();
 
-        $tariffs = MasterTariff::query()
-            ->with('package')
-            ->where(function ($query) use ($tutor) {
-                $query->where('teacher_level', $tutor->teacher_level)->orWhereNull('teacher_level');
-            })
-            ->get()
-            ->mapWithKeys(function (MasterTariff $tariff) {
-                $grade = in_array(strtoupper((string) $tariff->grade_level), ['SD', 'SMP', 'SMA', 'UMUM'], true)
-                    ? $tariff->grade_level
-                    : $tariff->package?->grade_level;
-                $method = $tariff->learning_method ?? $tariff->method ?? $tariff->package?->learning_method;
-                $rate = $tariff->category_rate ?? $tariff->base_rate;
+        // Master tariff berlaku berdasarkan jenjang pembelajar dan moda, bukan level tutor.
+        // Kolom teacher_level pada data lama kadang menyimpan jenjang, jadi grade dibaca
+        // dari kolom resmi terlebih dahulu lalu memakai relasi paket sebagai fallback.
+        $tariffs = [];
+        foreach (MasterTariff::query()->with('package')->orderByDesc('created_at')->get() as $tariff) {
+            $grade = $this->normalizeGrade($tariff->grade_level ?: $tariff->package?->grade_level ?: $tariff->teacher_level);
+            $method = $this->normalizeMethod($tariff->learning_method ?: $tariff->method ?: $tariff->package?->learning_method);
+            $rate = (float) ($tariff->category_rate ?: $tariff->base_rate ?: 0);
 
-                return $grade && $method && $rate
-                    ? [strtoupper($grade).'|'.$method => (float) $rate]
-                    : [];
-            });
+            if ($grade && $method && $rate > 0) {
+                $tariffs[$grade.'|'.$method] ??= $rate;
+            }
+        }
+        foreach ((array) config('booking.default_tariffs', []) as $grade => $rates) {
+            foreach ($rates as $method => $rate) {
+                $tariffs[$this->normalizeGrade($grade).'|'.$this->normalizeMethod($method)] ??= (float) $rate;
+            }
+        }
 
         return view('pages.tutor.create-class', [
             'tutor' => $tutor,
@@ -74,11 +75,15 @@ class TutorClassesController extends Controller
         $user = $request->user();
         abort_unless($user && in_array($user->role, ['teacher', 'tutor'], true), 403);
         $tutor = Teacher::query()->where('user_id', $user->user_id)->firstOrFail();
-        $approvedLevels = $tutor->approved_levels ?? $tutor->verified_levels ?? [];
+        $approvedLevels = array_map(fn ($level) => $this->normalizeGrade($level), $tutor->approved_levels ?: $tutor->verified_levels ?: []);
 
         $validated = $request->validate([
             'package_type' => ['required', Rule::in(['monthly', 'instant'])],
-            'grade_level' => ['required', Rule::in($approvedLevels)],
+            'grade_level' => ['required', 'string', 'max:50', function ($attribute, $value, $fail) use ($approvedLevels) {
+                if (!in_array($this->normalizeGrade($value), $approvedLevels, true)) {
+                    $fail('Jenjang yang dipilih belum diverifikasi untuk akun tutor ini.');
+                }
+            }],
             'package_name' => ['required', 'string', 'max:255'],
             'subject_name' => ['required', 'string', 'max:100'],
             'target_learning' => ['required', 'string', 'max:3000'],
@@ -94,8 +99,9 @@ class TutorClassesController extends Controller
                     ->where('is_available', true)),
             ],
         ]);
+        $validated['grade_level'] = $this->normalizeGrade($validated['grade_level']);
 
-        $configuredSubjects = Subject::query()->where('grade_level', $validated['grade_level'])->get();
+        $configuredSubjects = Subject::query()->whereRaw('LOWER(TRIM(grade_level)) = ?', [strtolower($validated['grade_level'])])->get();
         if ($configuredSubjects->isNotEmpty() && ! $configuredSubjects->contains(fn (Subject $subject) => $subject->is_active && $subject->name === $validated['subject_name'])) {
             return back()->withInput()->withErrors(['subject_name' => 'Mata pelajaran ini tidak aktif untuk jenjang yang dipilih.']);
         }
@@ -126,27 +132,19 @@ class TutorClassesController extends Controller
             ]);
         }
 
-        $tariff = MasterTariff::query()
-            ->with('package')
-            ->where(function ($query) use ($tutor) {
-                $query->where('teacher_level', $tutor->teacher_level)->orWhereNull('teacher_level');
-            })
-            ->get()
-            ->first(function (MasterTariff $candidate) use ($validated) {
-                $grade = in_array(strtoupper((string) $candidate->grade_level), ['SD', 'SMP', 'SMA', 'UMUM'], true)
-                    ? $candidate->grade_level
-                    : $candidate->package?->grade_level;
-                $method = $candidate->learning_method ?? $candidate->method ?? $candidate->package?->learning_method;
-                return strtoupper((string) $grade) === strtoupper($validated['grade_level'])
-                    && $method === $validated['learning_method']
-                    && (float) ($candidate->category_rate ?? $candidate->base_rate) > 0;
-            });
+        $tariff = MasterTariff::query()->with('package')->orderByDesc('created_at')->get()
+            ->first(fn (MasterTariff $candidate) =>
+                $this->normalizeGrade($candidate->grade_level ?: $candidate->package?->grade_level ?: $candidate->teacher_level) === $validated['grade_level']
+                && $this->normalizeMethod($candidate->learning_method ?: $candidate->method ?: $candidate->package?->learning_method) === $this->normalizeMethod($validated['learning_method'])
+                && (float) ($candidate->category_rate ?: $candidate->base_rate ?: 0) > 0
+            );
 
-        if (! $tariff) {
+        $basePrice = (float) ($tariff?->category_rate ?: $tariff?->base_rate ?: config(
+            'booking.default_tariffs.'.$validated['grade_level'].'.'.$this->normalizeMethod($validated['learning_method']), 0
+        ));
+        if ($basePrice <= 0) {
             return back()->withInput()->withErrors(['tariff' => 'Tarif resmi untuk jenjang dan metode ini belum tersedia. Hubungi admin untuk mengaturnya.']);
         }
-
-        $basePrice = (float) ($tariff->category_rate ?? $tariff->base_rate);
         $newPackageId = null;
 
         DB::transaction(function () use ($validated, $tutor, $basePrice, &$newPackageId) {
@@ -270,6 +268,20 @@ class TutorClassesController extends Controller
             'masterSlots' => $tutor->availabilitySlots()->where('is_active', true)->where('is_available', true)->orderBy('day_of_week')->orderBy('start_time')->get(),
             'shareSquad' => $shareSquad,
         ];
+    }
+
+    private function normalizeGrade(?string $grade): string
+    {
+        return strtoupper(trim((string) $grade));
+    }
+
+    private function normalizeMethod(?string $method): string
+    {
+        return match (strtolower(trim((string) $method))) {
+            'online', 'zoom', 'online_zoom' => 'online_zoom',
+            'home visit', 'home_visit' => 'home_visit',
+            default => strtolower(trim((string) $method)),
+        };
     }
 
     private function subjectOptions(): array

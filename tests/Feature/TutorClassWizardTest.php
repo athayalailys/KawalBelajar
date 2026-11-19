@@ -26,9 +26,23 @@ class TutorClassWizardTest extends TestCase
         $response->assertOk()
             ->assertSee('tariffs =', false)
             ->assertSee('SMP|online_zoom', false)
+            ->assertSee('SMP|home_visit', false)
             ->assertSee('60000', false)
             ->assertSee('75000', false);
         $this->assertDatabaseCount('master_tariffs', 2);
+    }
+
+    public function test_tariff_defaults_cover_both_modes_and_home_visit_quota_is_capped_in_step_two(): void
+    {
+        [$user] = $this->makeTutor();
+
+        $this->actingAs($user)->get(route('tutor.classes.create'))
+            ->assertOk()
+            ->assertSee('SMP|home_visit', false)
+            ->assertSee('data-capacity-option="5"', false)
+            ->assertSee('data-capacity-option="20"', false)
+            ->assertSee('const maximum = normalizeMethod(method.value) === \'home_visit\' ? 5 : 20', false)
+            ->assertSee('Estimasi nilai paket per siswa', false);
     }
 
     public function test_slot_001_tutor_can_add_one_hour_master_availability(): void
@@ -73,6 +87,24 @@ class TutorClassWizardTest extends TestCase
                 ->post(route('tutor.classes.store'), $this->classPayload($slot->slot_id, $method, $capacity))
                 ->assertSessionHasErrors('target_capacity');
         }
+    }
+
+    public function test_wizard_can_create_home_visit_class_using_grade_tariff_not_tutor_rank(): void
+    {
+        [$user, $teacher] = $this->makeTutor();
+        $slot = $this->makeTutorSlot($teacher, ['learning_method' => 'home_visit']);
+        $this->seedTariff($teacher, 'home_visit', 75000);
+
+        $response = $this->actingAs($user)->post(route('tutor.classes.store'), $this->classPayload($slot->slot_id, 'home_visit', 5, 'Kelas Home Visit'));
+
+        $package = ModulePackage::query()->where('teacher_id', $teacher->teacher_id)->where('package_name', 'Kelas Home Visit')->firstOrFail();
+        $response->assertRedirect(route('tutor.classes.materials', ['packageId' => $package->package_id, 'session' => 1]));
+        $this->assertDatabaseHas('master_tariffs', [
+            'package_id' => $package->package_id,
+            'teacher_level' => $teacher->teacher_level,
+            'learning_method' => 'home_visit',
+            'category_rate' => 75000,
+        ]);
     }
 
     public function test_wiz_003_master_slot_cannot_be_attached_to_two_class_programs(): void

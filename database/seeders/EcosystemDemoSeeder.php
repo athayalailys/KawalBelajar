@@ -327,12 +327,7 @@ class EcosystemDemoSeeder extends Seeder
 
     private function seedOfficialTariffs(Teacher $teacher, ModulePackage $online, ModulePackage $home, User $admin): void
     {
-        $prices = [
-            'SD' => ['online_zoom' => 45000, 'home_visit' => 60000],
-            'SMP' => ['online_zoom' => 60000, 'home_visit' => 75000],
-            'SMA' => ['online_zoom' => 75000, 'home_visit' => 95000],
-            'UMUM' => ['online_zoom' => 85000, 'home_visit' => 110000],
-        ];
+        $prices = (array) config('booking.default_tariffs', []);
 
         foreach ($prices as $level => $byMethod) {
             foreach ($byMethod as $method => $amount) {
